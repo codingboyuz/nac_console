@@ -10,8 +10,8 @@ Re-read at the start of every session.
 | 1 | Core platform | done |
 | 2 | Auth, RBAC, audit | done |
 | 3 | Device inventory and credential vault | done |
-| 4 | Driver layer: SSH, Telnet, classifier, parsers | pending |
-| 5 | NETCONF and SNMP | pending |
+| 4 | Driver layer: SSH, Telnet, classifier, parsers | done |
+| 5 | NETCONF and SNMP | done |
 | 6 | L2 features | pending |
 | 7 | ACL and routing | pending |
 | 8 | Job engine, Celery, WebSocket | pending |
@@ -57,8 +57,34 @@ Re-read at the start of every session.
 - Tests: secrets never in API responses, DB plaintext or logs (even explicit log attempts);
   constant query count for device listing (N+1 guard); migration 0002 round-trip.
 
+### Phase 4 - Driver layer
+- `DeviceDriver` port (`app/network/ports.py`), `DeviceConnectionFactory` (adapter per protocol,
+  per-device session semaphore, default 2), Redis per-device config lock (423 when held).
+- Netmiko drivers: `huawei` (S/AR, `save`) and `huawei_vrpv8` (CE, `commit`, `commit trial`,
+  `abort` on error), Telnet (`huawei_telnet`, always `security_warning`). Bounded retries with
+  exponential backoff + jitter (transport errors only). Exceptions mapped to domain errors
+  without credentials; VRP `Error:` markers fail operations.
+- SSH host keys: TOFU pin in DB on first contact (audited), strict known_hosts afterwards,
+  mismatch -> 409 + PENDING key + approve endpoint.
+- `CommandClassifier` (deny-by-default, view/context aware escalation), injection guard,
+  `LockoutGuard`, single-use confirmation tokens bound to user+device+command hash.
+- Parsers for 11 areas with golden fixtures for S5735 (VRP 5.170) and CE6881 (VRP 8.180)
+  (written by a parallel subagent, 299 tests, 99% coverage).
+- Endpoints: `POST /devices/{id}/test-connection`, `POST /devices/{id}/execute-command`.
+- E2E: asyncssh mock Huawei CLI (S and CE behaviour) + asyncio Telnet mock.
+
+### Phase 5 - NETCONF and SNMP
+- `ModelRegistry` from <hello> capabilities (candidate/confirmed-commit/validate/... + YANG
+  module selection per feature). ncclient driver with lock -> snapshot -> edit -> validate ->
+  confirmed commit -> verify -> confirming commit; rollback via cancel-commit/discard-changes.
+- huawei-vlan NETCONF builders (ElementTree, escaped).
+- pysnmp 7 async client (v2c, v3 authPriv), collectors for system, IF-MIB (64-bit preferred),
+  Huawei entity CPU/memory/temperature/fan/power; counter wrap/reset handling.
+- E2E: mock NETCONF server (asyncssh subsystem), UDP SNMPv2c simulator.
+- Full suite at end of phase 5: 500 passed (embedded PostgreSQL).
+
 ## Open issues
 - Docker / compose cannot be executed on the build host (no Docker). See ASSUMPTIONS A1.
 
 ## Next step
-- Phase 4: driver port, factory/pooling/locks, Netmiko SSH/Telnet, classifier, parsers.
+- Phase 6: L2 features (VLAN, interfaces, MAC, ARP, DHCP snooping, STP) with guarded change executor.

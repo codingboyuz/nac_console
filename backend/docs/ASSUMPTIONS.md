@@ -11,3 +11,12 @@ Each entry: the ambiguity, the choice made (safest reasonable option), and why.
 | A5 | Lint rules | Ruff `N818` (Error suffix) and `PLC0415` (local imports) are disabled. | Domain exceptions (`NotFound`, `Forbidden`) are clearer; heavy blocking network libs are imported lazily inside workers/drivers only. |
 | A6 | Proxy headers | The API trusts `X-Forwarded-For` only from `127.0.0.1` (uvicorn `--forwarded-allow-ips`). | Internal endpoint IP allowlists must not be spoofable. Change explicitly when a reverse proxy is deployed. |
 | A7 | `/metrics` | Not in OpenAPI, restricted to `INTERNAL_ALLOWED_NETWORKS`. | Prompt: internal endpoints network-restricted. |
+| A8 | Display abbreviations | `dis`/`disp` and unambiguous first-word abbreviations of known display topics (`dis ver`) are expanded; anything else unknown stays DANGEROUS. | Operators type abbreviations; display is read-only on VRP. |
+| A9 | Config commands via execute-command | WARNING-class configuration lines sent in user view are reclassified DANGEROUS. Configuration goes through typed feature endpoints / jobs. | Keeps execute-command display-oriented. |
+| A10 | AAA / RADIUS / VTY | `aaa`, `local-user`, `radius-server`, `user-interface`, `domain` lines are DANGEROUS, so NAC switch provisioning always needs a confirmation token. | Prompt: aaa/user changes are DANGEROUS. |
+| A11 | Rollback timers | CE: `commit trial <seconds>` (confirm with `commit`); S/AR have no trial commit, the planned fallback is `schedule reboot delay` without `save` (VRP-VERSION-DEPENDENT). | Only device-side timers survive losing the management path. |
+| A12 | SSH host keys | Pre-flight Paramiko key exchange fetches the key; DB-pinned TRUSTED key is then enforced via a temporary known_hosts file (Netmiko) or `hostkey_b64` (ncclient). | Avoids TOCTOU: the session itself is strict. |
+| A13 | NETCONF running-only devices | When `:candidate` is missing the driver edits `running` only if `:writable-running` is advertised; automatic rollback is not available there (snapshot is returned for manual restore). | Never assume uniform YANG support. |
+| A14 | NETCONF/SNMP and CLI | NETCONF and SNMP adapters raise `unsupported_capability` for CLI operations rather than emulate them. | Clear 422 reasons. |
+| A15 | Parser fixtures | Fixtures are hand-written to match documented VRP output, not captured from devices (see HARDWARE_VALIDATION). | No hardware available. |
+| A16 | SNMP entity indexes | Huawei fan/power tables use multi-part indexes (`0.1`); they are kept as strings. | Real MIB layout. |
