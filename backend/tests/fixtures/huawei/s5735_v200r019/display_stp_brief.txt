@@ -1,0 +1,8 @@
+<SW-01>display stp brief
+ MSTID  Port                        Role  STP State     Protection
+   0    GigabitEthernet0/0/1        DESI  FORWARDING      NONE
+   0    GigabitEthernet0/0/4        DESI  FORWARDING      BPDU
+   0    XGigabitEthernet0/0/1       DESI  FORWARDING      NONE
+   0    XGigabitEthernet0/0/2       ALTE  DISCARDING      NONE
+   0    Eth-Trunk1                  ROOT  FORWARDING      NONE
+<SW-01>

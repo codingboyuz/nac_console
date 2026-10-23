@@ -1,0 +1,9 @@
+<CE-01>display lldp neighbor brief
+Local Interface         Exptime(s) Neighbor Interface      Neighbor Device
+-------------------------------------------------------------------------------
+10GE1/0/1               109        eth0                    server-rack01-n01
+10GE1/0/2               95         5489-98ab-cdef          storage-a
+10GE1/0/48              112        XGigabitEthernet0/0/1   SW-01
+40GE1/0/1               101        40GE1/0/1               CE-02
+40GE1/0/2               101        40GE1/0/2               CE-02
+<CE-01>

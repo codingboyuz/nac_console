@@ -1,0 +1,20 @@
+<CE-01>display ip interface brief
+*down: administratively down
+^down: standby
+(l): loopback
+(s): spoofing
+(d): Dampening Suppressed
+(E): E-Trunk down
+The number of interface that is UP in Physical is 5
+The number of interface that is DOWN in Physical is 1
+The number of interface that is UP in Protocol is 5
+The number of interface that is DOWN in Protocol is 1
+
+Interface                         IP Address/Mask    Physical Protocol VPN
+LoopBack0                         198.51.100.11/32   up       up(s)    --
+MEth0/0/0                         192.0.2.100/24     up       up       MGMT
+NULL0                             unassigned         up       up(s)    --
+Vlanif10                          10.10.10.1/24      up       up       --
+Vlanif20                          10.20.20.1/24      up       up       TENANT-A
+Vlanif30                          unassigned         *down    down     --
+<CE-01>

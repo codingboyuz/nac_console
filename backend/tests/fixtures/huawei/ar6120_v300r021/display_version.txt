@@ -1,0 +1,22 @@
+<AR-01>display version
+Huawei Versatile Routing Platform Software
+VRP (R) software, Version 5.170 (AR6120 V300R021C10SPC100)
+Copyright (C) 2011-2021 HUAWEI TECH CO., LTD
+Huawei AR6120 Router uptime is 0 week, 2 days, 1 hour, 7 minutes
+BKP 0 version information:
+1. PCB      Version  : AR01BAK2D VER.B
+2. If Supporting PoE : No
+3. Board    Type     : AR6120
+4. MPU Slot Quantity : 1
+5. LPU Slot Quantity : 0
+
+MPU 0(Master) : uptime is 0 week, 2 days, 1 hour, 6 minutes
+SDRAM Memory Size    : 2048    M bytes
+Flash 0 Memory Size  : 1024    M bytes
+MPU version information :
+1. PCB      Version  : AR01SRU2D VER.B
+2. MAB      Version  : 0
+3. Board    Type     : AR6120
+4. CPLD0    Version  : 100
+5. BootROM  Version  : 0
+<AR-01>

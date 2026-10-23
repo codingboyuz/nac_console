@@ -1,0 +1,4 @@
+<SW-01>display interfaze brief
+                ^
+Error: Unrecognized command found at '^' position.
+<SW-01>

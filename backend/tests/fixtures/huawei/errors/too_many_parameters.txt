@@ -1,0 +1,4 @@
+<SW-01>display version brief extra
+                        ^
+Error: Too many parameters found at '^' position.
+<SW-01>

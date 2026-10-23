@@ -1,0 +1,3 @@
+<CE-01>display mac-address aging-time
+Aging time: 600 second(s)
+<CE-01>

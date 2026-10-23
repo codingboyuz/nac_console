@@ -1,0 +1,16 @@
+<CE-01>display cpu-usage
+CPU utilization statistics at 2026-10-23 10:21:05 693 ms
+-------------------------------------------------------------------------------
+System CPU Using Percentage :     8%
+CPU utilization for five seconds: 8%, one minute: 7%, five minutes: 7%
+Max CPU Usage :                     35%
+Max CPU Usage Stat. Time : 2026-10-20 02:00:13 512 ms
+-------------------------------------------------------------------------------
+Service Details:
+ServiceName  UseRate
+-------------------------------------------------------------------------------
+SYSTEM         5%
+FEA            2%
+DEVICE         1%
+-------------------------------------------------------------------------------
+<CE-01>

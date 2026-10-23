@@ -1,0 +1,4 @@
+[*CE-01-vlan10]commit
+Error: The configuration failed to be committed.
+Info: Run the display configuration commit failed command to view the failure reasons.
+[*CE-01-vlan10]

@@ -1,0 +1,52 @@
+<CE-01>display transceiver verbose
+
+ 10GE1/0/1 transceiver information:
+-------------------------------------------------------------------
+Common information:
+  Transceiver Type                      :10GBASE_SR_SFP
+  Connector Type                        :LC
+  Wavelength(nm)                        :850
+  Transfer Distance(m)                  :80(OM2),300(OM3),400(OM4)
+  Digital Diagnostic Monitoring         :YES
+  Vendor Name                           :HUAWEI
+  Vendor Part Number                    :02318169
+  Ordering Name                         :
+-------------------------------------------------------------------
+Manufacture information:
+  Manu. Serial Number                   :FAKECE000001
+  Manufacturing Date                    :2024-05-02
+  Vendor Name                           :HUAWEI
+-------------------------------------------------------------------
+Alarm information:
+  No alarm.
+-------------------------------------------------------------------
+Diagnostic information:
+  Temperature(Celsius)   Voltage(V)   Bias Current(mA) RX Power(dBM)  TX Power(dBM)
+  38.50                  3.29         6.12             -1.85          -2.10
+-------------------------------------------------------------------
+
+ 40GE1/0/1 transceiver information:
+-------------------------------------------------------------------
+Common information:
+  Transceiver Type                      :40GBASE_SR4_QSFP+
+  Connector Type                        :MPO
+  Wavelength(nm)                        :850
+  Transfer Distance(m)                  :100(OM3),150(OM4)
+  Digital Diagnostic Monitoring         :YES
+  Vendor Name                           :HUAWEI
+  Vendor Part Number                    :02311FAKE
+  Ordering Name                         :
+-------------------------------------------------------------------
+Manufacture information:
+  Manu. Serial Number                   :FAKECE400001
+  Manufacturing Date                    :2023-08-02
+  Vendor Name                           :HUAWEI
+-------------------------------------------------------------------
+Alarm information:
+  No alarm.
+-------------------------------------------------------------------
+Diagnostic information:
+  Temperature(Celsius)   Voltage(V)   Bias Current(mA) RX Power(dBM)  TX Power(dBM)
+  41.00                  3.31         7.40             -0.95          -1.20
+-------------------------------------------------------------------
+<CE-01>

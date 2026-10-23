@@ -1,0 +1,13 @@
+<SW-01>display cpu-usage
+ CPU Usage Stat. Cycle: 60 (Second)
+ CPU Usage            : 12% Max: 45%
+ CPU Usage Stat. Time : 2026-10-23  10:15:30
+ CPU utilization for five seconds: 12%: one minute: 10%: five minutes: 9%
+ Max CPU Usage Stat. Time : 2026-10-22 03:00:12.
+
+ TaskName        CPU  Runtime(CPU Tick High/Tick Low)  Task Explanation
+ VIDL           88%         0/ 2f9c3d80       DOPRA IDLE
+ OS              4%         0/  3b2a1c0       Operation System
+ bcmRX           2%         0/  1a2b3c4       bcmRX
+ FTS             1%         0/   f1e2d3       FTS
+<SW-01>

@@ -1,0 +1,7 @@
+<SW-01>display lldp neighbor brief
+Local Intf       Neighbor Dev             Neighbor Intf             Exptime(s)
+GE0/0/1          AP-Floor1-01             GE0/0/0                   104
+GE0/0/23         SW-Core-02               GE0/0/23                  98
+GE0/0/24         SW-Core-02               GE0/0/24                  98
+XGE0/0/1         CE-01                    10GE1/0/48                115
+<SW-01>

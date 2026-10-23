@@ -1,0 +1,3 @@
+<SW-01>display mac-address aging-time
+  Aging time: 300 second(s)
+<SW-01>

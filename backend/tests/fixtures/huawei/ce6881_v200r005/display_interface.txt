@@ -1,0 +1,134 @@
+<CE-01>display interface
+10GE1/0/1 current state : UP (ifindex: 9)
+Line protocol current state : UP
+Description: To-Server-Rack01
+Switch Port, PVID :   10, TPID : 8100(Hex), The Maximum Frame Length is 9216
+Internet protocol processing : disabled
+IP Sending Frames' Format is PKTFMT_ETHNT_2, Hardware address is 5489-9812-3401
+Port Mode: COMMON FIBER, Port Split/Aggregate: -
+Speed: 10000, Loopback: NONE
+Duplex: FULL, Negotiation: DISABLE
+Input Flow-control: DISABLE, Output Flow-control: DISABLE
+Mdi: -, Fec: NONE
+Last physical up time   : 2026-09-08 03:15:20
+Last physical down time : 2026-09-08 03:14:58
+Current system time: 2026-10-23 10:20:31
+Statistics last cleared:never
+    Last 300 seconds input rate: 2341720 bits/sec, 312 packets/sec
+    Last 300 seconds output rate: 1820544 bits/sec, 260 packets/sec
+    Input peak rate 9123456 bits/sec, Record time: 2026-10-12 21:40:03
+    Output peak rate 7123456 bits/sec, Record time: 2026-10-12 21:40:03
+    Input : 98765432109 bytes, 123456789 packets
+    Output: 87654321098 bytes, 112345678 packets
+    Input:
+      Unicast: 123000000 packets, Multicast: 400000 packets
+      Broadcast: 56789 packets, JumboOctets: 0 packets
+      CRC: 0 packets, Symbol: 0 packets
+      Overrun: 0 packets, InRangeLength: 0 packets
+      LongPacket: 0 packets, Jabber: 0 packets, Alignment: 0 packets
+      Fragment: 0 packets, Undersized Frame: 0 packets
+      RxPause: 0 packets
+    Output:
+      Unicast: 111900000 packets, Multicast: 400000 packets
+      Broadcast: 45678 packets, JumboOctets: 0 packets
+      Lost: 0 packets, Overflow: 0 packets, Underrun: 0 packets
+      System: 0 packets, Overruns: 0 packets
+      TxPause: 0 packets
+    Local fault: normal.
+    Remote fault: normal.
+    Last 300 seconds input utility rate:  0.02%
+    Last 300 seconds output utility rate: 0.02%
+    Input Error: 0 packets, Input Discard: 0 packets
+    Output Error: 0 packets, Output Discard: 0 packets
+    Input bandwidth utilization  :  0.02%
+    Output bandwidth utilization :  0.02%
+
+10GE1/0/2 current state : UP (ifindex: 10)
+Line protocol current state : UP
+Description: To-Storage-A
+Switch Port, PVID :    1, TPID : 8100(Hex), The Maximum Frame Length is 9216
+Internet protocol processing : disabled
+IP Sending Frames' Format is PKTFMT_ETHNT_2, Hardware address is 5489-9812-3402
+Port Mode: COMMON FIBER, Port Split/Aggregate: -
+Speed: 10000, Loopback: NONE
+Duplex: FULL, Negotiation: DISABLE
+Input Flow-control: DISABLE, Output Flow-control: DISABLE
+Mdi: -, Fec: NONE
+Last physical up time   : 2026-10-18 22:01:44
+Last physical down time : 2026-10-18 22:01:30
+Current system time: 2026-10-23 10:20:31
+Statistics last cleared:never
+    Last 300 seconds input rate: 35120 bits/sec, 41 packets/sec
+    Last 300 seconds output rate: 21002 bits/sec, 30 packets/sec
+    Input peak rate 802144 bits/sec, Record time: 2026-10-19 08:00:12
+    Output peak rate 650880 bits/sec, Record time: 2026-10-19 08:00:12
+    Input : 4567890123 bytes, 5678901 packets
+    Output: 3456789012 bytes, 4567890 packets
+    Input:
+      Unicast: 5600000 packets, Multicast: 70000 packets
+      Broadcast: 8901 packets, JumboOctets: 0 packets
+      CRC: 37 packets, Symbol: 0 packets
+      Overrun: 0 packets, InRangeLength: 0 packets
+      LongPacket: 0 packets, Jabber: 0 packets, Alignment: 0 packets
+      Fragment: 0 packets, Undersized Frame: 0 packets
+      RxPause: 0 packets
+    Output:
+      Unicast: 4500000 packets, Multicast: 60000 packets
+      Broadcast: 7890 packets, JumboOctets: 0 packets
+      Lost: 0 packets, Overflow: 0 packets, Underrun: 0 packets
+      System: 0 packets, Overruns: 0 packets
+      TxPause: 0 packets
+    Local fault: normal.
+    Remote fault: normal.
+    Last 300 seconds input utility rate:  0.35%
+    Last 300 seconds output utility rate: 0.21%
+    Input Error: 37 packets, Input Discard: 5 packets
+    Output Error: 0 packets, Output Discard: 0 packets
+    Input bandwidth utilization  :  0.35%
+    Output bandwidth utilization :  0.21%
+
+10GE1/0/3 current state : Administratively DOWN (ifindex: 11)
+Line protocol current state : DOWN
+Description:
+Switch Port, PVID :    1, TPID : 8100(Hex), The Maximum Frame Length is 9216
+Internet protocol processing : disabled
+IP Sending Frames' Format is PKTFMT_ETHNT_2, Hardware address is 5489-9812-3403
+Port Mode: COMMON FIBER, Port Split/Aggregate: -
+Speed: 10000, Loopback: NONE
+Duplex: FULL, Negotiation: DISABLE
+Input Flow-control: DISABLE, Output Flow-control: DISABLE
+Mdi: -, Fec: NONE
+Last physical up time   : -
+Last physical down time : 2026-09-08 03:14:58
+Current system time: 2026-10-23 10:20:31
+Statistics last cleared:never
+    Last 300 seconds input rate: 0 bits/sec, 0 packets/sec
+    Last 300 seconds output rate: 0 bits/sec, 0 packets/sec
+    Input peak rate 0 bits/sec, Record time: -
+    Output peak rate 0 bits/sec, Record time: -
+    Input : 0 bytes, 0 packets
+    Output: 0 bytes, 0 packets
+    Input:
+      Unicast: 0 packets, Multicast: 0 packets
+      Broadcast: 0 packets, JumboOctets: 0 packets
+      CRC: 0 packets, Symbol: 0 packets
+    Output:
+      Unicast: 0 packets, Multicast: 0 packets
+      Broadcast: 0 packets, JumboOctets: 0 packets
+    Input Error: 0 packets, Input Discard: 0 packets
+    Output Error: 0 packets, Output Discard: 0 packets
+    Input bandwidth utilization  :    0%
+    Output bandwidth utilization :    0%
+
+Vlanif10 current state : UP (ifindex: 50)
+Line protocol current state : UP
+Last line protocol up time : 2026-09-08 03:15:22
+Description: Servers
+Route Port,The Maximum Transmit Unit is 9000
+Internet Address is 10.10.10.1/24
+IP Sending Frames' Format is PKTFMT_ETHNT_2, Hardware address is 5489-9812-3400
+Current system time: 2026-10-23 10:20:31
+Statistics last cleared:never
+    Input bandwidth utilization  : --
+    Output bandwidth utilization : --
+<CE-01>

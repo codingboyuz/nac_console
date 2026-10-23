@@ -1,0 +1,132 @@
+<SW-01>display interface
+GigabitEthernet0/0/1 current state : UP (ifindex: 7)
+Line protocol current state : UP
+Description:To-AP-Floor1
+Switch Port, PVID :   10, TPID : 8100(Hex), The Maximum Frame Length is 9216
+IP Sending Frames' Format is PKTFMT_ETHNT_2, Hardware address is 00e0-fc12-3456
+Last physical up time   : 2026-10-01 08:12:45
+Last physical down time : 2026-10-01 08:12:40
+Current system time: 2026-10-23 10:15:02
+Port Mode: COMMON COPPER
+Speed : 1000,  Loopback: NONE
+Duplex: FULL,  Negotiation: ENABLE
+Mdi   : AUTO,  Flow-control: DISABLE
+Last 300 seconds input rate 12345 bits/sec, 15 packets/sec
+Last 300 seconds output rate 23456 bits/sec, 20 packets/sec
+Input peak rate 845120 bits/sec, Record time: 2026-10-20 14:02:11
+Output peak rate 1203456 bits/sec, Record time: 2026-10-20 14:02:11
+
+Input:  1234567 packets, 987654321 bytes
+  Unicast:              1200000,  Multicast:                 30000
+  Broadcast:               4567,  Jumbo:                         0
+  Discard:                    0,  Total Error:                   0
+
+  CRC:                        0,  Giants:                        0
+  Jabbers:                    0,  Throttles:                     0
+  Runts:                      0,  Symbols:                       0
+  Ignoreds:                   0,  Frames:                        0
+
+Output:  2345678 packets, 1876543210 bytes
+  Unicast:              2300000,  Multicast:                 40000
+  Broadcast:               5678,  Jumbo:                         0
+  Discard:                    3,  Total Error:                   0
+
+  Collisions:                 0,  ExcessiveCollisions:           0
+  Late Collisions:            0,  Deferreds:                     0
+
+    Input bandwidth utilization threshold : 80.00%
+    Output bandwidth utilization threshold: 80.00%
+    Input bandwidth utilization  : 1.25%
+    Output bandwidth utilization : 0.87%
+
+GigabitEthernet0/0/3 current state : Administratively DOWN (ifindex: 9)
+Line protocol current state : DOWN
+Description:Unused-Port
+Switch Port, PVID :    1, TPID : 8100(Hex), The Maximum Frame Length is 9216
+IP Sending Frames' Format is PKTFMT_ETHNT_2, Hardware address is 00e0-fc12-3458
+Last physical up time   : -
+Last physical down time : 2026-09-15 11:00:02
+Current system time: 2026-10-23 10:15:02
+Port Mode: COMMON COPPER
+Speed :  AUTO,  Loopback: NONE
+Duplex: AUTO,  Negotiation: ENABLE
+Mdi   : AUTO,  Flow-control: DISABLE
+Last 300 seconds input rate 0 bits/sec, 0 packets/sec
+Last 300 seconds output rate 0 bits/sec, 0 packets/sec
+Input peak rate 0 bits/sec, Record time: -
+Output peak rate 0 bits/sec, Record time: -
+
+Input:  0 packets, 0 bytes
+  Unicast:                    0,  Multicast:                     0
+  Broadcast:                  0,  Jumbo:                         0
+  Discard:                    0,  Total Error:                   0
+
+  CRC:                        0,  Giants:                        0
+  Jabbers:                    0,  Throttles:                     0
+  Runts:                      0,  Symbols:                       0
+  Ignoreds:                   0,  Frames:                        0
+
+Output:  0 packets, 0 bytes
+  Unicast:                    0,  Multicast:                     0
+  Broadcast:                  0,  Jumbo:                         0
+  Discard:                    0,  Total Error:                   0
+
+  Collisions:                 0,  ExcessiveCollisions:           0
+  Late Collisions:            0,  Deferreds:                     0
+
+    Input bandwidth utilization threshold : 80.00%
+    Output bandwidth utilization threshold: 80.00%
+    Input bandwidth utilization  :    0%
+    Output bandwidth utilization :    0%
+
+GigabitEthernet0/0/4 current state : UP (ifindex: 10)
+Line protocol current state : UP
+Description:Printer-2F
+Switch Port, PVID :   10, TPID : 8100(Hex), The Maximum Frame Length is 9216
+IP Sending Frames' Format is PKTFMT_ETHNT_2, Hardware address is 00e0-fc12-3459
+Last physical up time   : 2026-10-22 07:41:09
+Last physical down time : 2026-10-22 07:41:02
+Current system time: 2026-10-23 10:15:02
+Port Mode: COMMON COPPER
+Speed :  100,  Loopback: NONE
+Duplex: HALF,  Negotiation: ENABLE
+Mdi   : AUTO,  Flow-control: DISABLE
+Last 300 seconds input rate 4410 bits/sec, 3 packets/sec
+Last 300 seconds output rate 9120 bits/sec, 6 packets/sec
+Input peak rate 64120 bits/sec, Record time: 2026-10-22 09:12:40
+Output peak rate 80220 bits/sec, Record time: 2026-10-22 09:12:40
+
+Input:  88120 packets, 10234567 bytes
+  Unicast:                86000,  Multicast:                  1800
+  Broadcast:                320,  Jumbo:                         0
+  Discard:                    2,  Total Error:                 152
+
+  CRC:                      152,  Giants:                        0
+  Jabbers:                    0,  Throttles:                     0
+  Runts:                      0,  Symbols:                       0
+  Ignoreds:                   0,  Frames:                        0
+
+Output:  99231 packets, 20345678 bytes
+  Unicast:                97000,  Multicast:                  2000
+  Broadcast:                231,  Jumbo:                         0
+  Discard:                    0,  Total Error:                   1
+
+  Collisions:                 7,  ExcessiveCollisions:           0
+  Late Collisions:            0,  Deferreds:                     0
+
+    Input bandwidth utilization threshold : 80.00%
+    Output bandwidth utilization threshold: 80.00%
+    Input bandwidth utilization  : 0.05%
+    Output bandwidth utilization : 0.11%
+
+Vlanif10 current state : UP (ifindex: 61)
+Line protocol current state : UP
+Last line protocol up time : 2026-09-28 03:11:20
+Description:Users-VLAN10
+Route Port,The Maximum Transmit Unit is 1500
+Internet Address is 10.10.10.1/24
+IP Sending Frames' Format is PKTFMT_ETHNT_2, Hardware address is 00e0-fc12-3400
+Current system time: 2026-10-23 10:15:02
+    Input bandwidth utilization  : --
+    Output bandwidth utilization : --
+<SW-01>

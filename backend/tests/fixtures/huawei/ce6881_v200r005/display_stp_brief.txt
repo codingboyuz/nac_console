@@ -1,0 +1,9 @@
+<CE-01>display stp brief
+ MSTID  Port                        Role  STP State     Protection
+   0    10GE1/0/1                   DESI  FORWARDING      NONE
+   0    10GE1/0/2                   DESI  FORWARDING      NONE
+   0    10GE1/0/4                   DESI  DISCARDING      NONE
+   0    Eth-Trunk1                  ROOT  FORWARDING      NONE
+   1    Eth-Trunk1                  MAST  FORWARDING      NONE
+   1    10GE1/0/8                   DESI  FORWARDING      ROOT
+<CE-01>

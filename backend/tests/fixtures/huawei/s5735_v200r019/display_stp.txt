@@ -1,0 +1,40 @@
+<SW-01>display stp
+-------[CIST Global Info][Mode MSTP]-------
+CIST Bridge         :32768.00e0-fc12-3400
+Config Times        :Hello 2s MaxAge 20s FwDly 15s MaxHop 20
+Active Times        :Hello 2s MaxAge 20s FwDly 15s MaxHop 20
+CIST Root/ERPC      :4096 .00e0-fc00-0001 / 20000
+CIST RegRoot/IRPC   :32768.00e0-fc12-3400 / 0
+CIST RootPortId     :128.24
+BPDU-Protection     :Disabled
+TC or TCN received  :12
+TC count per hello  :0
+STP Converge Mode   :Normal
+Time since last TC  :0 days 1h:2m:3s
+Number of TC        :15
+Last TC occurred    :Eth-Trunk1
+----[Port1(GigabitEthernet0/0/1)][FORWARDING]----
+ Port Protocol       :Enabled
+ Port Role           :Designated Port
+ Port Priority       :128
+ Port Cost(Dot1T )   :Config=auto / Active=20000
+ Designated Bridge/Port   :32768.00e0-fc12-3400 / 128.1
+ Port Edged          :Config=enabled / Active=enabled
+ Point-to-point      :Config=auto / Active=true
+ Transit Limit       :147 packets/hello-time
+ Protection Type     :None
+ Port STP Mode       :MSTP
+ Port Protocol Type  :Config=auto / Active=dot1s
+ BPDU Encapsulation  :Config=stp / Active=stp
+ PortTimes           :Hello 2s MaxAge 20s FwDly 15s RemHop 20
+ TC or TCN send      :3
+ TC or TCN received  :99
+ BPDU Sent           :41230
+          TCN: 0, Config: 0, RST: 0, MST: 41230
+ BPDU Received       :0
+          TCN: 0, Config: 0, RST: 0, MST: 0
+----[Port24(Eth-Trunk1)][FORWARDING]----
+ Port Protocol       :Enabled
+ Port Role           :Root Port
+ BPDU-Protection     :Enabled
+<SW-01>

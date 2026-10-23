@@ -1,0 +1,3 @@
+<SW-01>display vlan 300
+Error: The VLAN does not exist.
+<SW-01>

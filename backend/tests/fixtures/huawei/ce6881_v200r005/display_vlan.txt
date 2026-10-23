@@ -1,0 +1,28 @@
+<CE-01>display vlan
+The total number of VLANs is : 5
+--------------------------------------------------------------------------------
+U: Up;         D: Down;         TG: Tagged;         UT: Untagged;
+MP: Vlan-mapping;               ST: Vlan-stacking;
+#: ProtocolTransparent-vlan;    *: Management-VLAN;
+MAC-LRN: MAC-address learning;  STAT: Statistic;
+--------------------------------------------------------------------------------
+
+VID  Type     Ports
+--------------------------------------------------------------------------------
+1    common   UT:10GE1/0/3(D)    10GE1/0/4(D)    10GE1/0/5(D)
+10   common   UT:10GE1/0/1(U)
+              TG:40GE1/0/1(U)    40GE1/0/2(U)    Eth-Trunk1(U)
+20   common   UT:10GE1/0/2(U)
+              TG:Eth-Trunk1(U)
+30   common   TG:10GE1/0/6(D)    10GE1/0/7(D)    10GE1/0/8(U)    10GE1/0/9(U)
+                 10GE1/0/10(U)   Eth-Trunk1(U)
+4000 common
+
+VID  Status  Property      MAC-LRN STAT    Description
+--------------------------------------------------------------------------------
+1    enable  default       enable  disable VLAN 0001
+10   enable  default       enable  disable Servers
+20   enable  default       enable  disable Storage
+30   enable  default       enable  disable Tenant A Backend
+4000 enable  default       disable disable
+<CE-01>

@@ -1,0 +1,4 @@
+<SW-01>display mac-address vlan
+                                ^
+Error: Incomplete command found at '^' position.
+<SW-01>

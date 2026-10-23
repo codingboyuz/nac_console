@@ -1,0 +1,17 @@
+<CE-01>display mac-address
+Flags: * - Backup
+       # - forwarding logical interface, operations cannot be performed based
+           on the interface.
+BD   : bridge-domain   Age : dynamic MAC learned time in seconds
+-------------------------------------------------------------------------------
+MAC Address    VLAN/VSI/BD   Learned-From        Type                Age
+-------------------------------------------------------------------------------
+5489-9812-3421 10/-/-        10GE1/0/1           dynamic           13470
+5489-9812-3422 20/-/-        10GE1/0/2           dynamic            5021
+00e0-fc12-3456 10/-/-        Eth-Trunk1          dynamic          182044
+5489-9812-3425 30/-/-        10GE1/0/8           static                -
+5489-9812-3426 30/-/-        -                   blackhole             -
+5489-9812-3427 -/-/100       Nve1                dynamic             310
+-------------------------------------------------------------------------------
+Total items: 6
+<CE-01>

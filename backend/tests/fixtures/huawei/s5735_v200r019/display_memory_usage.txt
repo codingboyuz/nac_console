@@ -1,0 +1,6 @@
+<SW-01>display memory-usage
+  Memory utilization statistics at 2026-10-23 10:15:40+00:00
+  System Total Memory Is: 1022361600 bytes
+  Total Memory Used Is: 487026688 bytes
+  Memory Using Percentage Is: 47%
+<SW-01>

@@ -1,0 +1,4 @@
+<SW-01>display vlan 5000
+                   ^
+Error: Wrong parameter found at '^' position.
+<SW-01>

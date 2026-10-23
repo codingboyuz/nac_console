@@ -1,0 +1,66 @@
+<SW-01>display transceiver verbose
+
+ XGigabitEthernet0/0/1 transceiver information:
+-------------------------------------------------------------
+Common information:
+  Transceiver Type                      :10GBASE_SR_SFP
+  Connector Type                        :LC
+  Wavelength(nm)                        :850
+  Transfer Distance(m)                  :80(OM2),300(OM3)
+  Digital Diagnostic Monitoring         :YES
+  Vendor Name                           :HUAWEI
+  Vendor Part Number                    :02318169
+  Ordering Name                         :
+-------------------------------------------------------------
+Manufacture information:
+  Manu. Serial Number                   :FAKE00000001
+  Manufacturing Date                    :2024-03-11
+  Vendor Name                           :HUAWEI
+-------------------------------------------------------------
+Diagnostic information:
+  Temperature(°C)                       :35
+  Temp High Threshold(°C)               :78.00
+  Temp Low  Threshold(°C)               :-3.00
+  Supply Voltage(V)                     :3.31
+  Volt High Threshold(V)                :3.60
+  Volt Low  Threshold(V)                :3.00
+  Bias Current(mA)                      :6.53
+  Bias High Threshold(mA)               :11.80
+  Bias Low  Threshold(mA)               :2.00
+  Current RX Power (dBm)                :-2.31
+  Default RX Power High Threshold(dBm)  :2.00
+  Default RX Power Low  Threshold(dBm)  :-13.90
+  Current TX Power (dBm)                :-2.45
+  Default TX Power High Threshold(dBm)  :1.00
+  Default TX Power Low  Threshold(dBm)  :-7.30
+  User Set RX Power High Threshold(dBm) :2.00
+  User Set RX Power Low  Threshold(dBm) :-13.90
+-------------------------------------------------------------
+
+ XGigabitEthernet0/0/2 transceiver information:
+-------------------------------------------------------------
+Common information:
+  Transceiver Type                      :10GBASE_LR_SFP
+  Connector Type                        :LC
+  Wavelength(nm)                        :1310
+  Transfer Distance(m)                  :10000(9um)
+  Digital Diagnostic Monitoring         :YES
+  Vendor Name                           :FAKEOPTICS
+  Vendor Part Number                    :FO-10G-LR
+  Ordering Name                         :
+-------------------------------------------------------------
+Manufacture information:
+  Manu. Serial Number                   :FAKE00000002
+  Manufacturing Date                    :2023-11-20
+  Vendor Name                           :FAKEOPTICS
+-------------------------------------------------------------
+Diagnostic information:
+  Temperature(°C)                       :41.25
+  Temp High Threshold(°C)               :75.00
+  Supply Voltage(V)                     :3.28
+  Bias Current(mA)                      :31.20
+  Current RX Power (dBm)                :-40.00
+  Default RX Power High Threshold(dBm)  :0.50
+  Current TX Power (dBm)                :-1.02
+-------------------------------------------------------------
+<SW-01>

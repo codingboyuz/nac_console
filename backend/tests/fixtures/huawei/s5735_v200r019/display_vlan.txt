@@ -1,0 +1,28 @@
+<SW-01>display vlan
+The total number of vlans is : 5
+--------------------------------------------------------------------------------
+U: Up;         D: Down;         TG: Tagged;         UT: Untagged;
+MP: Vlan-mapping;               ST: Vlan-stacking;
+#: ProtocolTransparent-vlan;    *: Management-vlan;
+--------------------------------------------------------------------------------
+
+VID  Type    Ports
+--------------------------------------------------------------------------------
+1    common  UT:GE0/0/2(D)      GE0/0/3(D)      GE0/0/5(D)      GE0/0/6(D)
+                GE0/0/7(D)      GE0/0/8(D)
+             TG:Eth-Trunk1(U)
+10   common  UT:GE0/0/1(U)      GE0/0/4(U)
+             TG:XGE0/0/1(U)     Eth-Trunk1(U)
+20   common  UT:GE0/0/9(U)      GE0/0/10(D)
+             TG:XGE0/0/1(U)     Eth-Trunk1(U)
+100  common  TG:XGE0/0/1(U)     Eth-Trunk1(U)
+200  common
+
+VID  Status  Property      MAC-LRN Statistics Description
+--------------------------------------------------------------------------------
+1    enable  default       enable  disable    VLAN 0001
+10   enable  default       enable  disable    Users-Floor1
+20   enable  default       enable  disable    Voice
+100  enable  default       enable  disable    Management
+200  disable default       enable  disable    VLAN 0200
+<SW-01>

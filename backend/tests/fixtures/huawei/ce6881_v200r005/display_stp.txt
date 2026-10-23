@@ -1,0 +1,27 @@
+<CE-01>display stp
+--------[CIST Global Info][Mode MSTP]--------
+Protocol Status     :Enabled
+Bpdu-filter default :Disabled
+CIST Bridge         :32768.5489-9812-3400
+Bridge Times        :Hello 2s MaxAge 20s FwDly 15s MaxHop 20
+CIST Root/ERPC      :0    .5489-9800-0001 / 1000
+CIST RegRoot/IRPC   :32768.5489-9812-3400 / 0
+CIST RootPortId     :128.53
+BPDU-Protection     :Enabled
+CIST Root Type      :Primary root
+TC or TCN received  :4
+TC count per hello  :0
+STP Converge Mode   :Normal
+Share region-configuration :Enabled
+Time since last TC  :3 days 4h:5m:6s
+Number of TC        :7
+Last TC occurred    :Eth-Trunk1
+Topo Change Flag    :0
+----[Port53(Eth-Trunk1)][FORWARDING]----
+ Port Protocol       :Enabled
+ Port Role           :Root Port
+ Port Priority       :128
+ Port Cost(Dot1T )   :Config=auto / Active=1000
+ Designated Bridge/Port   :0.5489-9800-0001 / 128.1
+ TC or TCN received  :55
+<CE-01>

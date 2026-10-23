@@ -1,0 +1,10 @@
+<SW-01>display dhcp snooping user-bind all
+DHCP Dynamic Bind-table:
+Flags:O - outer vlan ,I - inner vlan ,P - Vlan-mapping
+IP Address       MAC Address     VSI/VLAN(O/I/P) Interface      Lease
+--------------------------------------------------------------------------------
+10.10.10.50      00e0-fc12-3401  10   /--  /--    GE0/0/3        2026.10.24-09:15
+10.10.10.51      5489-9811-2210  10   /--  /--    GE0/0/4        2026.10.24-11:42
+--------------------------------------------------------------------------------
+print count:           2          total count:           2
+<SW-01>

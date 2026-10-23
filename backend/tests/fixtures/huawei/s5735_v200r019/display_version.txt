@@ -1,0 +1,17 @@
+<SW-01>display version
+Huawei Versatile Routing Platform Software
+VRP (R) software, Version 5.170 (S5735 V200R019C10SPC500)
+Copyright (C) 2000-2020 HUAWEI TECH Co., Ltd.
+HUAWEI S5735-L48T4X-A1 Routing Switch uptime is 12 weeks, 3 days, 4 hours, 25 minutes
+
+ES5D2T48Q003 0(Master) : uptime is 12 weeks, 3 days, 4 hours, 24 minutes
+DDR             Memory Size : 1024 M bytes
+FLASH Total     Memory Size : 512  M bytes
+FLASH Available Memory Size : 302  M bytes
+Pcb           Version   : VER.A
+BootROM       Version   : 0213.0000
+BootLoad      Version   : 0213.0000
+CPLD          Version   : 0107
+Software      Version   : VRP (R) Software, Version 5.170 (V200R019C10SPC500)
+FLASH         Version   : 0000.0000
+<SW-01>

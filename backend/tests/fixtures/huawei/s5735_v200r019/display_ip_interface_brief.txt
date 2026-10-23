@@ -1,0 +1,20 @@
+<SW-01>display ip interface brief
+*down: administratively down
+^down: standby
+(l): loopback
+(s): spoofing
+(E): E-Trunk down
+The number of interface that is UP in Physical is 5
+The number of interface that is DOWN in Physical is 2
+The number of interface that is UP in Protocol is 4
+The number of interface that is DOWN in Protocol is 3
+
+Interface                         IP Address/Mask      Physical   Protocol
+LoopBack0                         198.51.100.1/32      up         up(s)
+MEth0/0/1                         10.255.0.253/24      down       down
+NULL0                             unassigned           up         up(s)
+Vlanif1                           unassigned           up         down
+Vlanif10                          10.10.10.1/24        up         up
+Vlanif100                         192.0.2.2/24         up         up
+Vlanif200                         10.20.0.1/24         *down      down
+<SW-01>
