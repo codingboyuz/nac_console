@@ -65,6 +65,7 @@ class Device(UuidPkMixin, TimestampMixin, Base):
     snmp_credential_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("credentials.id", ondelete="RESTRICT")
     )
+    snmp_port: Mapped[int] = mapped_column(Integer, default=161, server_default="161")
     requires_super: Mapped[bool] = mapped_column(Boolean, default=False)
     timeout: Mapped[int] = mapped_column(Integer, default=30)
     status: Mapped[DeviceStatus] = mapped_column(

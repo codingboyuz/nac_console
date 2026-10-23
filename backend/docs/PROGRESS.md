@@ -16,7 +16,7 @@ Re-read at the start of every session.
 | 7 | ACL and routing | done |
 | 8 | Job engine, Celery, WebSocket | done |
 | 9 | Backups and config management | done |
-| 10 | Monitoring, alerts, discovery | pending |
+| 10 | Monitoring, alerts, discovery | done |
 | 11 | NAC and RADIUS | pending |
 | 12 | CLI, hardening, docs, delivery | pending |
 
@@ -151,9 +151,30 @@ Re-read at the start of every session.
   as set difference, removals last).
 - `backup.run` job type + `POST /devices/{id}/backup` (202). Full suite: 563 passed.
 
+### Phase 10 - Monitoring, alerts, discovery
+- `metric_samples` partitioned by RANGE (ts) on PostgreSQL (DEFAULT partition in migration
+  0007; hourly maintenance creates 3 monthly partitions ahead - moving any rows out of DEFAULT
+  first - and drops partitions past `METRIC_RETENTION_DAYS`). SQLite falls back to deletes.
+- Polling (`poll.metrics` job, `POST /devices/{id}/poll`): SNMP when `snmp_credential_id`
+  is set (system, entity CPU/memory/temperature/fan/power, IF-MIB 64-bit counters -> bps,
+  error rates, utilisation), CLI fallback (`display cpu-usage/memory-usage/interface brief`).
+  Live fan-out on `events:monitoring`; history/latest APIs.
+- Alert engine: rules with for-duration + hysteresis, dedup by key, flap suppression,
+  maintenance windows, FIRING -> ACKNOWLEDGED -> RESOLVED, event alerts (device_offline/online,
+  configuration_change, unknown_mac, authentication_failures). Default rules seeded.
+  Channels: SMTP STARTTLS, HMAC-SHA256 signed webhook (`X-NAC-Signature`), Telegram
+  ("Huawei SW-01 GigabitEthernet0/0/2 is DOWN"). Every attempt recorded; 5 attempts then DEAD;
+  Celery `alerts.deliver` with backoff in production.
+- Discovery: CIDR must be <= /22 and inside `DISCOVERY_ALLOWED_SUBNETS`; paced ICMP (rate +
+  concurrency caps) -> SNMP with chosen stored credentials -> SSH banner read; proposals only,
+  explicit adopt (409 on re-adopt) / ignore. Audited.
+- Settings API (`schedules`, `alert_channels`), typed and audited; secrets stay in env.
+- Found and fixed a real PostgreSQL issue (cannot attach a month partition while DEFAULT holds
+  rows for it). Full suite: 582 passed.
+
 ## Open issues
 - Docker / compose cannot be executed on the build host (no Docker). See ASSUMPTIONS A1.
 - A real Celery worker against a real Redis broker was not run on the build host (no Redis); the task runs eagerly in tests.
 
 ## Next step
-- Phase 10: monitoring (SNMP metrics, partitioned storage, retention), alert engine + channels, safe discovery.
+- Phase 11: NAC + RADIUS (ADR, endpoints, policy engine, internal authorize/accounting, CoA, FreeRADIUS templates, switch config generator).

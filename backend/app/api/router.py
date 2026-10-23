@@ -15,6 +15,7 @@ from app.api.v1 import (
     interfaces,
     jobs,
     mac,
+    monitoring,
     routing,
     stp,
     users,
@@ -33,6 +34,7 @@ api_router.include_router(device_groups.cred_router)
 for _module in (vlans, interfaces, mac, stp, acl, routing):
     api_router.include_router(_module.router)
 api_router.include_router(jobs.router)
+api_router.include_router(monitoring.router)
 api_router.include_router(backups.router)
 api_router.include_router(backups.device_router)
 api_router.include_router(arp.router)

@@ -6,12 +6,24 @@ from app.models.backup import Backup
 from app.models.base import Base
 from app.models.device import Credential, Device, DeviceGroup, SshHostKey
 from app.models.job import Job, JobDeviceResult, Setting
+from app.models.monitoring import (
+    Alert,
+    AlertDelivery,
+    AlertRule,
+    DiscoveredDevice,
+    DiscoveryRun,
+    MaintenanceWindow,
+    MetricSample,
+)
 from app.models.network_state import ArpEntry, DhcpBinding, Interface, MacEntry, MacMove, Vlan
 from app.models.user import RefreshToken, User
 
 __all__ = [
     "Acl",
     "AclRule",
+    "Alert",
+    "AlertDelivery",
+    "AlertRule",
     "ArpEntry",
     "AuditLog",
     "Backup",
@@ -20,11 +32,15 @@ __all__ = [
     "Device",
     "DeviceGroup",
     "DhcpBinding",
+    "DiscoveredDevice",
+    "DiscoveryRun",
     "Interface",
     "Job",
     "JobDeviceResult",
     "MacEntry",
     "MacMove",
+    "MaintenanceWindow",
+    "MetricSample",
     "RefreshToken",
     "Route",
     "Setting",

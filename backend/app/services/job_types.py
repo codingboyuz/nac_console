@@ -78,6 +78,10 @@ class BackupParams(_Params):
     include_saved: bool = False
 
 
+class PollParams(_Params):
+    scope: Literal["cpu", "interfaces", "all"] = "all"
+
+
 class ShowParams(_Params):
     command: str = Field(min_length=1, max_length=512)
 
@@ -178,6 +182,12 @@ async def _backup(jc: JobContext, device: Device) -> dict[str, Any]:
     return out
 
 
+async def _poll(jc: JobContext, device: Device) -> dict[str, Any]:
+    scope = PollParams.model_validate(jc.params).scope
+    samples = await jc.services.monitoring.poll(jc.principal, device, scope)
+    return {"samples": len(samples)}
+
+
 async def _show(jc: JobContext, device: Device) -> dict[str, Any]:
     from app.services.command_service import CommandRequest
 
@@ -223,6 +233,7 @@ REGISTRY: dict[str, JobType] = {
         JobType("device.test_connection", Permission.DEVICE_TEST, D, NoParams, _test_connection),
         JobType("device.show", Permission.DEVICE_SHOW, D, ShowParams, _show),
         JobType("backup.run", Permission.BACKUPS_CREATE, D, BackupParams, _backup),
+        JobType("poll.metrics", Permission.DEVICE_SHOW, P, PollParams, _poll),
     )
 }
 

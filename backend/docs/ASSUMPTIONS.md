@@ -31,3 +31,6 @@ Each entry: the ambiguity, the choice made (safest reasonable option), and why.
 | A25 | Inline dispatch | `JOB_DISPATCH=inline` runs jobs in the API process (tests/dev). Production uses Celery. | Tests without Redis/Celery. |
 | A26 | Backup storage | Masked copy for display/diff; exact copy encrypted (AES-256-GCM) for restore. Configs are treated as sensitive (backups:read is not granted to READ_ONLY). | Prompt: strip or encrypt secrets; treat configs as sensitive. |
 | A27 | Restore mechanism | Line-level merge plan pushed through ChangeService (not file replace + reboot). Lines only on the device inside a section are undone; whole extra sections are reported as notes for manual review. | Safest non-disruptive option without file transfer; listed in HARDWARE_VALIDATION. |
+| A28 | Interface-down alerts | Only admin-up interfaces produce `if_oper` samples, so shut ports never alert. | Avoids noise. |
+| A29 | ICMP in discovery | Uses the system `ping` binary (fixed argv, validated IP, no shell) instead of raw sockets, so the worker needs no extra capabilities beyond NET_RAW for ping itself. | Least privilege. |
+| A30 | Telegram/webhook destinations | Destinations live in settings; tokens/secrets only in env. Webhooks must be https unless `allow_http` is set for a lab receiver. | No secrets in DB. |

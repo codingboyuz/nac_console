@@ -29,6 +29,7 @@ _NON_NULLABLE = {
     "family",
     "protocol",
     "port",
+    "snmp_port",
     "requires_super",
     "timeout",
     "tags",

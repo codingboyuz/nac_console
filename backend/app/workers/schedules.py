@@ -10,11 +10,11 @@ import time
 import uuid
 from typing import Any
 
-from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from app.core.logging import get_logger
 from app.domain.identity import Principal, RequestContext
+from app.domain.schedules import DEFAULT_SCHEDULES, ScheduleEntry
 from app.models.device import Device
 from app.models.job import Setting
 from app.models.user import User
@@ -24,37 +24,6 @@ from app.services.job_service import JobSubmit
 log = get_logger(__name__)
 SETTINGS_KEY = "schedules"
 LAST_RUN = "sched:last:{}"
-
-
-class ScheduleEntry(BaseModel):
-    name: str = Field(pattern=r"^[a-z0-9_.-]{1,64}$")
-    job_type: str
-    interval_seconds: int = Field(ge=30, le=7 * 86400)
-    params: dict[str, Any] = Field(default_factory=dict)
-    device_filter: dict[str, str] = Field(default_factory=dict)  # e.g. {"site": "hq"}
-    enabled: bool = True
-    run_as: str = Field(default="svc-scheduler", description="service account username")
-
-
-DEFAULT_SCHEDULES: list[ScheduleEntry] = [
-    ScheduleEntry(
-        name="backup-daily",
-        job_type="backup.run",
-        interval_seconds=86400,
-        params={"trigger": "scheduled"},
-    ),
-    ScheduleEntry(
-        name="cpu-30s", job_type="poll.metrics", interval_seconds=30, params={"scope": "cpu"}
-    ),
-    ScheduleEntry(
-        name="interfaces-60s",
-        job_type="poll.metrics",
-        interval_seconds=60,
-        params={"scope": "interfaces"},
-    ),
-    ScheduleEntry(name="mac-15m", job_type="collect.mac", interval_seconds=900),
-    ScheduleEntry(name="arp-15m", job_type="collect.arp", interval_seconds=900),
-]
 
 
 async def load_schedules(services: Any) -> list[ScheduleEntry]:

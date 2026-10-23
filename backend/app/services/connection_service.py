@@ -142,6 +142,29 @@ class DeviceConnector:
             status=status,
         )
 
+    async def run_snmp(
+        self,
+        device: Device,
+        operation: Callable[[DeviceDriver], T],
+        principal: Principal | None = None,
+    ) -> T:
+        """Poll over SNMP regardless of the device's CLI protocol (needs snmp_credential_id)."""
+        if device.snmp_credential_id is None:
+            raise ValidationFailed("device has no SNMP credential")
+        async with UnitOfWork(self._db) as uow:
+            cred = await uow.repo(CredentialRepository).get_or_404(device.snmp_credential_id)
+        secret = self._credentials.resolve_row(cred)
+        params = ConnectionParams(
+            device_id=str(device.id),
+            host=device.mgmt_ip,
+            port=device.snmp_port,
+            protocol=DeviceProtocol.SNMP,
+            family=device.family,
+            timeout=min(device.timeout, 10),
+            snmp={"kind": secret.kind.value, "secret": secret},
+        )
+        return await anyio.to_thread.run_sync(self._execute, params, operation)
+
     async def run(
         self,
         device: Device,

@@ -43,6 +43,7 @@ class _DeviceFields(ApiModel):
     port: int | None = Field(default=None, ge=1, le=65535)
     credential_id: uuid.UUID | None = None
     snmp_credential_id: uuid.UUID | None = None
+    snmp_port: int = Field(default=161, ge=1, le=65535)
     requires_super: bool = False
     timeout: int = Field(default=30, ge=5, le=600)
     group_id: uuid.UUID | None = None
@@ -96,6 +97,7 @@ class DeviceUpdate(ApiModel):
     port: int | None = Field(default=None, ge=1, le=65535)
     credential_id: uuid.UUID | None = None
     snmp_credential_id: uuid.UUID | None = None
+    snmp_port: int | None = Field(default=None, ge=1, le=65535)
     requires_super: bool | None = None
     timeout: int | None = Field(default=None, ge=5, le=600)
     group_id: uuid.UUID | None = None
@@ -131,6 +133,7 @@ class DeviceOut(ApiModel):
     port: int
     credential_id: uuid.UUID | None
     snmp_credential_id: uuid.UUID | None
+    snmp_port: int
     requires_super: bool
     timeout: int
     status: DeviceStatus

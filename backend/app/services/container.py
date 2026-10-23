@@ -15,6 +15,9 @@ from app.core.rate_limit import RateLimiter
 from app.core.security import TokenService
 from app.network.factory import DeviceConnectionFactory
 from app.services.acl_service import AclService
+from app.services.alert_events import EVENTS as ALERT_EVENTS
+from app.services.alert_events import AlertEventHandler
+from app.services.alert_service import AlertService
 from app.services.arp_service import ArpService
 from app.services.audit_service import AuditService
 from app.services.auth_service import AuthService
@@ -26,14 +29,30 @@ from app.services.confirmation_service import ConfirmationService
 from app.services.connection_service import DeviceConnector
 from app.services.credential_service import CredentialService
 from app.services.device_service import DeviceService
+from app.services.discovery_service import DiscoveryService
 from app.services.interface_service import InterfaceService
 from app.services.job_runner import JobRunner
 from app.services.job_service import InlineDispatcher, JobService, celery_dispatcher
 from app.services.mac_service import MacService
+from app.services.monitoring_service import MonitoringService
+from app.services.notifications import default_channels
 from app.services.routing_service import RoutingService
+from app.services.settings_service import SettingsService
 from app.services.stp_service import StpService
 from app.services.user_service import UserService
 from app.services.vlan_service import VlanService
+
+
+async def celery_delivery(delivery_id: Any) -> None:
+    from app.workers.celery_app import celery_app
+
+    celery_app.send_task("app.workers.tasks.alerts.deliver", args=[str(delivery_id)])
+
+
+async def celery_discovery(run_id: Any) -> None:
+    from app.workers.celery_app import celery_app
+
+    celery_app.send_task("app.workers.tasks.discovery.run", args=[str(run_id)])
 
 
 @dataclass(slots=True)
@@ -65,6 +84,10 @@ class ServiceContainer:
     events: EventBus
     jobs: JobService
     backups: BackupService
+    alerts: AlertService
+    monitoring: MonitoringService
+    discovery: DiscoveryService
+    settings_store: SettingsService
     inline_dispatcher: InlineDispatcher | None = None
 
     @classmethod
@@ -100,6 +123,14 @@ class ServiceContainer:
         changes.pre_change_hooks.append(backups.pre_change_hook)
         changes.post_change_hooks.append(backups.post_change_hook)
         changes.post_change_hooks.append(config_changed)
+        alerts = AlertService(db, redis, events, default_channels(settings))
+        alert_events = AlertEventHandler(db, alerts)
+        for event_name in ALERT_EVENTS:
+            events.subscribe(event_name, alert_events.on_event)
+        monitoring = MonitoringService(
+            settings, db, redis, devices, connector, collection, alerts, events
+        )
+        discovery = DiscoveryService(settings, db, credentials, devices, audit)
         container = cls(
             settings=settings,
             db=db,
@@ -128,13 +159,22 @@ class ServiceContainer:
             events=events,
             jobs=jobs,
             backups=backups,
+            alerts=alerts,
+            monitoring=monitoring,
+            discovery=discovery,
+            settings_store=SettingsService(db, audit),
         )
         if (dispatch or settings.job_dispatch) == "inline":
             container.inline_dispatcher = InlineDispatcher(lambda: JobRunner(container))
             jobs.dispatcher = container.inline_dispatcher
+        else:
+            alerts.deliverer.dispatch = celery_delivery
+            discovery.dispatch = celery_discovery
         return container
 
     async def aclose(self) -> None:
         """Release resources owned by services; wait for in-process jobs to finish."""
         if self.inline_dispatcher is not None:
             await self.inline_dispatcher.drain()
+        await self.alerts.drain()
+        await self.discovery.drain()

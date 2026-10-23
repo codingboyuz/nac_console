@@ -18,6 +18,7 @@ def create_celery() -> Celery:
         task_routes={
             "app.workers.tasks.jobs.run_job": {"queue": JobQueue.CONFIG.value},
             "app.workers.tasks.schedule.tick": {"queue": JobQueue.DEFAULT.value},
+            "app.workers.tasks.maintenance.*": {"queue": JobQueue.DEFAULT.value},
             "app.workers.tasks.alerts.*": {"queue": JobQueue.ALERTS.value},
             "app.workers.tasks.polling.*": {"queue": JobQueue.POLLING.value},
             "app.workers.tasks.discovery.*": {"queue": JobQueue.DISCOVERY.value},
@@ -40,10 +41,17 @@ def create_celery() -> Celery:
         # settings API take effect without restarting beat.
         beat_schedule={
             "schedule-tick": {"task": "app.workers.tasks.schedule.tick", "schedule": 15.0},
+            "metrics-maintenance": {
+                "task": "app.workers.tasks.maintenance.metrics",
+                "schedule": 3600.0,
+            },
         },
         imports=(
             "app.workers.tasks.jobs",
             "app.workers.tasks.schedule",
+            "app.workers.tasks.alerts",
+            "app.workers.tasks.discovery",
+            "app.workers.tasks.maintenance",
         ),
     )
     return app

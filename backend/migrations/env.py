@@ -31,6 +31,15 @@ def render_item(type_: str, obj: Any, autogen_context: Any) -> str | bool:
     return False
 
 
+def include_object(
+    obj: Any, name: str | None, type_: str, reflected: bool, compare_to: Any
+) -> bool:
+    """Monthly metric partitions are managed at runtime, not by migrations."""
+    table = getattr(obj, "table", obj) if type_ == "index" else obj
+    table_name = getattr(table, "name", name) or ""
+    return not (reflected and table_name.startswith("metric_samples_"))
+
+
 def _url() -> str:
     override = context.get_x_argument(as_dictionary=True).get("url")
     return override or config.attributes.get("url") or get_settings().database_url
@@ -43,6 +52,7 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         compare_type=True,
         render_item=render_item,
+        include_object=include_object,
         render_as_batch=_url().startswith("sqlite"),
     )
     with context.begin_transaction():
@@ -55,6 +65,7 @@ def _do_run(connection: Connection) -> None:
         target_metadata=target_metadata,
         compare_type=True,
         render_item=render_item,
+        include_object=include_object,
         render_as_batch=connection.dialect.name == "sqlite",
     )
     with context.begin_transaction():
