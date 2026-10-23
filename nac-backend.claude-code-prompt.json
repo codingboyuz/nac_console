@@ -1,0 +1,473 @@
+{
+  "meta": {
+    "name": "Huawei Network Automation & NAC Platform - Backend",
+    "version": "2.0.0",
+    "target_tool": "Claude Code",
+    "language": "en",
+    "usage": "Paste as the first message, or save as PROMPT.json in the repo root and run: 'Read PROMPT.json and execute it phase by phase.' Claude Code must also generate CLAUDE.md from claude_md_seed."
+  },
+
+  "role": "You are a principal Python backend engineer, network automation engineer, network security engineer and software architect. You write production code for authorized enterprise network administration only.",
+
+  "mission": "Build a runnable, secure, modular, scalable backend that automates, monitors, audits and secures Huawei L2/L3 switches and routers (VRP and CloudEngine) over SSH, Telnet, NETCONF and SNMP, with an integrated NAC engine (802.1X, MAB, RADIUS, dynamic/guest/quarantine VLAN). This is not a toy, PoC or CRUD demo.",
+
+  "operating_rules": {
+    "autonomy": [
+      "Do not stop after planning. Implement every phase end to end.",
+      "Do not ask clarifying questions. When something is ambiguous, choose the safest reasonable option, and record it in docs/ASSUMPTIONS.md with the reason.",
+      "Inspect the repository first (ls, git log, existing configs). Extend existing code rather than overwrite it."
+    ],
+    "workflow_loop": [
+      "For every phase: (1) write a short plan, (2) implement, (3) write tests, (4) run the verify commands, (5) fix every failure, (6) commit, (7) update docs/PROGRESS.md.",
+      "Never move to the next phase while tests, ruff, black --check or mypy fail.",
+      "Prefer small, reviewable commits using Conventional Commits (feat:, fix:, test:, docs:, chore:)."
+    ],
+    "context_management": [
+      "Keep docs/PROGRESS.md as the single source of truth: completed phases, open issues, decisions, next step. Re-read it at the start of every session.",
+      "Keep files under ~300 lines. Split by responsibility.",
+      "Use subagents or parallel work only for independent modules (for example parsers + fixtures)."
+    ],
+    "forbidden": [
+      "TODO / pass / NotImplementedError placeholders in core functionality",
+      "Hardcoded secrets, credentials, tokens or keys anywhere (code, tests, fixtures, docs examples must use obvious placeholders)",
+      "Global mutable state, blocking I/O inside async endpoints, giant files, copy-paste duplication",
+      "An API endpoint that executes arbitrary shell or unclassified CLI",
+      "Malware, credential harvesting, stealth, persistence, or scanning of anything not explicitly configured"
+    ],
+    "truthfulness": [
+      "Never claim a test, lint or migration passed unless you ran it and saw the result.",
+      "If something cannot be verified without real hardware, say so and mark it in docs/HARDWARE_VALIDATION.md as a checklist item."
+    ]
+  },
+
+  "claude_md_seed": [
+    "# Huawei NAC Platform - Claude Code rules",
+    "Stack: Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2 async, Alembic, Celery, Redis, PostgreSQL.",
+    "Commands: make install | make lint | make type | make test | make migrate | make run | make worker",
+    "Layering: api -> services -> repositories/network drivers. Never import api from services. Never import drivers from api.",
+    "Every device-touching operation: classify command -> authorize (RBAC) -> audit -> execute in worker or threadpool.",
+    "Never log secrets. Use SecretStr and the central redaction filter.",
+    "Network tests use fake Huawei CLI fixtures under tests/fixtures/huawei/. No real device is required.",
+    "Update docs/PROGRESS.md after each phase."
+  ],
+
+  "scope": {
+    "in_scope": [
+      "Backend only: FastAPI service, Celery workers, CLI, DB, Docker, docs, tests",
+      "OpenAPI contract and WebSocket endpoints consumed by a separate React + TypeScript + Tailwind + shadcn/ui frontend"
+    ],
+    "out_of_scope": [
+      "Frontend implementation",
+      "Running or installing the RADIUS server inside the API process (see nac.radius_architecture)"
+    ],
+    "supported_devices": [
+      "Huawei S-series campus switches (VRP V200R/V600R)",
+      "Huawei CloudEngine CE-series (VRP V8 / YANG-first)",
+      "Huawei AR routers",
+      "L2-only and L3 variants, detected at runtime"
+    ],
+    "huawei_reality_checks": [
+      "Platform families differ: S-series commonly uses save to persist; CE-series uses commit semantics. Detect family and version from display version and NETCONF capabilities before any change.",
+      "Do not assume uniform YANG support. Always read NETCONF capabilities first and pick a code path from them.",
+      "Interface naming varies (GigabitEthernet0/0/1, 10GE1/0/1, 25GE1/0/1, XGigabitEthernet). Normalize names in one place.",
+      "Every CLI example in code and docs that varies by VRP version must be marked with a 'VRP-VERSION-DEPENDENT' note."
+    ]
+  },
+
+  "tech_stack": {
+    "python": "3.12+",
+    "package_manager": "uv (lockfile committed); pyproject.toml is the single config file",
+    "web": ["FastAPI", "Uvicorn (uvloop)", "Pydantic v2 + pydantic-settings", "httpx"],
+    "database": ["PostgreSQL 16+", "SQLAlchemy 2.x async (asyncpg)", "Alembic"],
+    "queue": ["Celery 5", "Redis 7 (broker + cache + rate-limit + pub/sub for WebSocket fan-out)"],
+    "network_libs": {
+      "ssh": "Netmiko (device_type huawei) on top of Paramiko; blocking, so run in Celery workers or anyio threadpool, never on the event loop",
+      "telnet": "Netmiko huawei_telnet or telnetlib3. The stdlib telnetlib is removed in Python 3.13: do not use it",
+      "netconf": "ncclient (blocking, run in threadpool/worker)",
+      "snmp": "pysnmp (maintained fork compatible with Python 3.12, async API); SNMPv3 authPriv preferred",
+      "napalm": "Optional, behind an adapter. Huawei VRP support is community-grade, so core features must not depend on it"
+    },
+    "security_libs": [
+      "argon2-cffi (or pwdlib[argon2]) for password hashing. Do not use unmaintained passlib",
+      "PyJWT or authlib for JWT",
+      "cryptography (AES-256-GCM or MultiFernet) for credentials at rest with key rotation",
+      "slowapi or a Redis-based limiter for rate limiting"
+    ],
+    "quality": ["pytest", "pytest-asyncio", "pytest-cov (min 85% on services, parsers, nac)", "testcontainers or docker-compose for integration tests", "ruff", "black", "mypy --strict on app/", "pre-commit", "bandit", "pip-audit"],
+    "observability": ["structlog (JSON logs)", "OpenTelemetry hooks (optional)", "Prometheus /metrics endpoint", "correlation-id middleware"],
+    "config_rule": "All config via environment variables and .env (pydantic-settings). Secrets are SecretStr. Provide .env.example with placeholders only. Fail fast on missing required secrets in non-dev environments."
+  },
+
+  "architecture": {
+    "style": "Clean Architecture with ports and adapters. Domain logic is framework-free and unit-testable without a DB or network.",
+    "dependency_rule": "api -> services -> (repositories, network ports). network drivers implement ports. models/schemas never import api.",
+    "key_patterns": [
+      "Port: DeviceDriver protocol (connect, disconnect, run_show, push_config, capabilities, health). Adapters: SshDriver, TelnetDriver, NetconfDriver, SnmpDriver.",
+      "DeviceConnectionFactory selects the adapter per device.protocol and manages short-lived, bounded connection pooling per device (max 1-2 concurrent sessions per device by default, configurable) to avoid exhausting VTY lines.",
+      "Per-device distributed lock (Redis) so two jobs never configure the same device at once.",
+      "CommandClassifier (SAFE / WARNING / DANGEROUS) in front of every CLI execution.",
+      "Typed config builders (VlanConfigBuilder, AclConfigBuilder...) generate commands from validated models. Never string-concatenate user input into CLI.",
+      "Capability registry: features check device capabilities before deployment and return 422/409 with a clear reason if unsupported.",
+      "Unit of Work + repository pattern for persistence.",
+      "Domain events (config_changed, device_offline, endpoint_authorized) feed alerts and audit.",
+      "Idempotent operations: desired-state comparison first, then apply only the diff."
+    ],
+    "directory_tree": [
+      "backend/",
+      "  pyproject.toml, uv.lock, Makefile, Dockerfile, docker-compose.yml, .env.example, alembic.ini",
+      "  app/main.py",
+      "  app/core/{config,security,logging,database,exceptions,rbac,rate_limit,crypto,middleware}.py",
+      "  app/api/router.py, app/api/deps.py, app/api/v1/{auth,users,devices,device_groups,interfaces,vlans,mac,arp,acl,routing,stp,dhcp,nac,radius,monitoring,backups,jobs,logs,alerts,discovery,settings,ws}.py",
+      "  app/models/ (SQLAlchemy 2.x typed models)",
+      "  app/schemas/ (Pydantic v2 request/response; secrets never in responses)",
+      "  app/repositories/",
+      "  app/domain/{commands,nac,policies,events}/ (pure logic)",
+      "  app/services/{device,vlan,interface,mac,arp,acl,routing,stp,dhcp,nac,radius,backup,monitoring,discovery,alert,audit,job}_service.py",
+      "  app/network/ports.py, app/network/factory.py, app/network/classifier.py",
+      "  app/network/drivers/{base,huawei_ssh,huawei_telnet,huawei_netconf,huawei_snmp}.py",
+      "  app/network/builders/ (CLI + NETCONF payload builders)",
+      "  app/network/parsers/{version,interfaces,vlans,mac,arp,routing,stp,dhcp,cpu_mem,transceivers}.py",
+      "  app/workers/{celery_app.py,tasks/,schedules.py}",
+      "  app/cli/ (python -m app.cli)",
+      "  migrations/",
+      "  tests/{unit,integration,e2e}/ and tests/fixtures/huawei/",
+      "  docs/{README,ARCHITECTURE,API,SECURITY,DEVELOPMENT,DEPLOYMENT,ASSUMPTIONS,PROGRESS,HARDWARE_VALIDATION}.md and docs/adr/"
+    ]
+  },
+
+  "domain_requirements": {
+    "device_management": {
+      "fields": ["hostname", "mgmt_ip (inet, unique)", "vendor", "model", "family (S/CE/AR)", "vrp_version", "protocol (ssh|telnet|netconf|snmp)", "port", "credential_id (FK to encrypted credential)", "enable/system-view info if required", "timeout", "status", "last_seen", "group_id", "tags (jsonb)", "capabilities (jsonb)", "created_at/updated_at"],
+      "endpoints": [
+        "POST /api/v1/devices", "GET /api/v1/devices", "GET /api/v1/devices/{id}", "PUT|PATCH /api/v1/devices/{id}", "DELETE /api/v1/devices/{id}",
+        "POST /api/v1/devices/{id}/test-connection", "POST /api/v1/devices/{id}/execute-command", "POST /api/v1/devices/{id}/backup", "POST /api/v1/devices/{id}/discover"
+      ],
+      "rules": [
+        "Credentials live in a separate table, encrypted at rest with key id/versioning; API never returns them.",
+        "Telnet devices: response metadata must include a security_warning field; creation requires an explicit allow_insecure_protocol=true flag and ADMIN/NETWORK_ADMIN role.",
+        "SSH host key verification is ON by default with a trust-on-first-use store pinned in DB and a way to approve/rotate; never silently disable."
+      ]
+    },
+    "command_safety": {
+      "classifier": "Deterministic allowlist/regex classifier returning SAFE, WARNING or DANGEROUS plus a reason.",
+      "examples": {
+        "SAFE": ["display version", "display current-configuration", "display ip interface brief", "display interface", "display vlan", "display mac-address", "display arp", "display ip routing-table", "display stp", "display cpu-usage", "display memory-usage"],
+        "WARNING": ["interface config changes", "vlan create/delete", "acl rule changes", "static mac changes"],
+        "DANGEROUS": ["reboot", "reset saved-configuration", "format", "delete", "undo vlan batch on trunk uplinks", "shutdown on uplink/management interface", "undo ip address on mgmt interface", "ACL applied to management plane", "startup system-software", "aaa/user changes", "reset ... "]
+      },
+      "enforcement": [
+        "Unknown commands default to DANGEROUS (deny by default). execute-command only accepts show/display-class commands for roles below NETWORK_ADMIN.",
+        "DANGEROUS requires: role >= NETWORK_ADMIN, request flag confirm=true plus a confirmation_token (short-lived, bound to user+device+command hash) obtained from a dry-run call, and a mandatory audit reason field.",
+        "Reject input containing newline, carriage return, control chars or command chaining to prevent CLI injection.",
+        "Self-lockout guard: refuse changes that would cut the management path (mgmt interface shutdown, ACL denying the controller IP, removing mgmt VLAN) unless explicitly overridden by ADMIN with a rollback timer."
+      ]
+    },
+    "ssh": [
+      "Netmiko huawei driver: connect, auth, enter/exit system-view, send show, send config set, commit/save as per family, disable paging, timeout and bounded retries with exponential backoff and jitter.",
+      "Map exceptions to domain errors (DeviceUnreachable, AuthFailed, CommandRejected, Timeout) and never leak raw credentials in error messages.",
+      "Detect Huawei error markers (for example 'Error:', 'Unrecognized command') and fail the operation explicitly."
+    ],
+    "telnet": ["Login, password, system-view, config, logout, timeouts, retries. Redact passwords at the transport-log level. Always return the insecure-protocol warning."],
+    "netconf": [
+      "ncclient connect, get, get-config, edit-config, validate, commit, discard-changes, confirmed-commit and rollback only when advertised by capabilities.",
+      "Capability discovery on connect, cached in device.capabilities. Select YANG module set per device (huawei-vlan, huawei-ifm, huawei-acl, ietf-* where available) through a ModelRegistry.",
+      "Always: get-config before edit, edit to candidate where supported, validate, commit with timeout, verify, otherwise rollback."
+    ],
+    "snmp": [
+      "SNMPv2c and SNMPv3 (authPriv default, SHA/AES). Community and v3 keys stored encrypted.",
+      "Collect: sysName, sysUpTime, CPU, memory, ifTable/ifXTable status, traffic counters (handle 32/64-bit counter wrap), errors/discards, temperature, fan, power supply via Huawei entity MIBs when supported.",
+      "Compute rates from counter deltas; store time-series in a partitioned table (monthly) with retention policy."
+    ],
+    "vlan": [
+      "Create/delete/rename/list/get; access, trunk, hybrid port modes; add/remove VLAN to port; trunk allowed list; PVID; interface description.",
+      "Bulk VLAN deployment to many devices through the job engine with dry-run, per-device result, concurrency limit, stop-on-failure threshold, and post-verification via display vlan.",
+      "VLAN ranges parsed and validated (1-4094; reserved VLANs rejected)."
+    ],
+    "interfaces": [
+      "List, status, shutdown/undo shutdown, speed, duplex, description, link-type, VLAN assignment, traffic, errors, CRC.",
+      "Bulk operations supported; shutdown is classified DANGEROUS on uplinks/LAG members/mgmt and requires confirmation."
+    ],
+    "mac_arp_dhcp": [
+      "MAC table collection, search by MAC/VLAN/interface/device, locate switch port, static MAC add/remove, aging info.",
+      "POST /api/v1/mac-addresses/block and /allow implement MAC blackhole/static entries as a convenience only. Documentation must state MAC blocking is not a security control and recommend 802.1X.",
+      "ARP table, IP-to-MAC and MAC-to-IP, duplicate IP and MAC flapping detection, ARP anomaly heuristics.",
+      "DHCP snooping bindings and lease info; detect duplicate IP, unknown MAC, unexpected DHCP server, binding/ARP mismatch."
+    ],
+    "acl": [
+      "Basic, advanced and layer-2 ACL numbering as Huawei defines; IPv4 and IPv6 where supported.",
+      "Create/delete ACL, add/modify/remove rule with rule-id management, apply/remove on interface (traffic-filter) or globally.",
+      "Rule model: src/dst CIDR, protocol, src/dst port or range, action permit|deny, optional log. Strict Pydantic validation.",
+      "Dangerous: deny any, ACL on mgmt VTY/interface, removing the last permit. Require confirmation and run self-lockout check."
+    ],
+    "routing": [
+      "Static and default routes, OSPF, BGP, RIP, VRRP, route-policy, each behind capability detection.",
+      "Pre-change snapshot of routing table, post-change verification (neighbor up, route present), automatic rollback on failure where the platform supports it."
+    ],
+    "stp": ["STP/RSTP/MSTP status, root bridge, port role/state, topology change counters, BPDU guard/edge-port info, loop detection; configuration of mode and priorities where supported."]
+  },
+
+  "nac": {
+    "radius_architecture": {
+      "decision_record": "Write docs/adr/0001-radius-architecture.md before coding NAC.",
+      "default": "Production default: FreeRADIUS as the RADIUS server, using rlm_rest (or rlm_python) to call an internal authorization endpoint on this backend. The backend owns policy, endpoints and audit; FreeRADIUS owns the RADIUS protocol.",
+      "optional": "Provide a pyrad-based async RADIUS reference server behind a feature flag for development/testing only, and say so in docs.",
+      "internal_api": "POST /internal/v1/radius/authorize and /accounting. Protected by mTLS or a signed shared token, network-restricted, never exposed publicly, rate-limited.",
+      "coa": "Implement RFC 5176 CoA/Disconnect-Request client so policy changes can re-authorize or disconnect live sessions. Make it a service with retries and audit.",
+      "failure_mode": "Configurable fail-closed (default: quarantine VLAN) vs fail-open per site; document the tradeoff."
+    },
+    "radius_server_config": ["host", "auth_port", "acct_port", "shared_secret (encrypted, write-only)", "timeout", "retries", "enabled"],
+    "endpoint_model": ["mac", "ip", "hostname", "device_type", "os", "user", "switch_id", "interface", "vlan", "status", "first_seen", "last_seen", "authorization_state", "profile_confidence", "source (dot1x|mab|manual)"],
+    "statuses": ["AUTHORIZED", "UNKNOWN", "QUARANTINED", "BLOCKED", "PENDING"],
+    "features": [
+      "802.1X and MAC authentication bypass handling, guest VLAN, quarantine VLAN, dynamic VLAN via Tunnel-Type/Tunnel-Medium-Type/Tunnel-Private-Group-ID, Filter-Id/ACL attributes where supported.",
+      "Endpoint registration and profiling from DHCP fingerprints, OUI vendor lookup, MAC/ARP/LLDP data.",
+      "Accounting ingestion (start/interim/stop) updates endpoint last_seen and session records.",
+      "Normalize MAC formats to one canonical form at the boundary; index on it."
+    ],
+    "policy_engine": {
+      "principles": [
+        "Declarative, data-driven, typed. No eval, no user-provided CLI or code in conditions or actions.",
+        "Conditions and actions come from whitelisted registries (for example mac_registered, endpoint_group_is, user_in_group, device_type_is, oui_in, time_window, status_is). Unknown names are rejected at validation time.",
+        "Ordered by priority, first-match wins, mandatory default policy (unknown -> quarantine VLAN).",
+        "Policies are versioned, have enable/disable, dry-run simulation endpoint (POST /api/v1/nac/policies/simulate), and every decision is audited with the matched policy id."
+      ],
+      "example": {
+        "name": "registered-employee",
+        "priority": 100,
+        "condition": { "type": "mac_registered" },
+        "action": { "type": "assign_vlan", "vlan": 10 }
+      },
+      "required_policies_example": [
+        "registered MAC -> VLAN 10",
+        "guest -> VLAN 20",
+        "unknown -> VLAN 999 (quarantine)",
+        "blocked -> reject or quarantine"
+      ]
+    },
+    "switch_side_provisioning": "Generate (do not blindly push) Huawei AAA/RADIUS/802.1X/MAC-auth config from templates, show the diff, and deploy only through the job engine with confirmation. Mark every command VRP-VERSION-DEPENDENT."
+  },
+
+  "jobs_and_workers": {
+    "job_fields": ["id (uuid)", "name", "type", "status (PENDING|RUNNING|SUCCESS|PARTIAL|FAILED|CANCELLED)", "progress (0-100)", "created_by", "created_at", "started_at", "completed_at", "target_devices", "per_device_results", "output", "error", "retry_count", "dry_run"],
+    "rules": [
+      "Long-running network work never blocks the API. Endpoints return 202 Accepted + job id + Location header.",
+      "Celery with Redis; task_acks_late, retry with backoff, soft/hard time limits, idempotency keys, per-device Redis lock, queue separation (config, polling, discovery, alerts), concurrency caps for bulk jobs.",
+      "Celery Beat schedules: backups, CPU every 30s, interface polling every 60s, MAC collection, discovery; schedules configurable from settings API and stored in DB.",
+      "Cancellation support, partial failure reporting and safe stop-on-failure thresholds for bulk config.",
+      "Progress and results published via Redis pub/sub to WebSocket."
+    ],
+    "example_jobs": ["Create VLAN 100 on 50 switches", "Disable GE0/0/24 on selected switches", "Backup all devices", "Collect MAC tables from all switches", "Poll interface status every 60s", "Check CPU every 30s"]
+  },
+
+  "backup_and_config_management": [
+    "Backup display current-configuration (and saved-configuration where relevant). Store device, timestamp, content, SHA-256 hash, size, status, trigger (manual|scheduled|pre-change|post-change).",
+    "Deduplicate by hash; skip creating new version when unchanged.",
+    "Strip or encrypt secrets in stored configs when possible (cipher/irreversible-cipher strings); treat stored configs as sensitive.",
+    "Version diff API (unified diff) between any two backups, and config drift detection against last known good.",
+    "Pre-change backup is mandatory before any configuration job; post-change backup and diff recorded.",
+    "Restore is never automatic. Restore requires dry-run preview, diff, DANGEROUS confirmation token, ADMIN/NETWORK_ADMIN role, rollback timer where the platform supports it, and an audit entry. Reject restore when device family/version mismatch the backup.",
+    "Config change detection (by hash or syslog/SNMP trap) raises a configuration_change alert."
+  ],
+
+  "monitoring_and_alerts": {
+    "metrics": ["CPU", "memory", "interfaces status", "traffic rate", "errors/CRC/discards", "uptime", "temperature", "fan", "power"],
+    "alerts": ["device_offline", "high_cpu", "high_memory", "interface_down", "high_traffic", "crc_errors", "unknown_mac", "configuration_change", "authentication_failures"],
+    "alert_engine": [
+      "Rule-based thresholds with hysteresis, for-duration, severity, de-duplication, flap suppression, maintenance windows, acknowledge/resolve lifecycle.",
+      "Channels: email (SMTP/TLS), signed webhook (HMAC header), Telegram. Bot token and SMTP creds only from env/secret store.",
+      "Delivery through Celery with retries and dead-letter handling; every delivery attempt recorded.",
+      "Example Telegram message: 'Huawei SW-01 GE0/0/12 is DOWN'."
+    ],
+    "exposure": ["REST for history", "WebSocket for live", "Prometheus /metrics for the platform itself"]
+  },
+
+  "discovery": [
+    "Input: CIDR. Enforce a maximum prefix size (default /22) and an allowed-subnets list in settings; reject anything outside it.",
+    "Gentle: ICMP echo with rate limit and concurrency cap, then SNMP sysDescr/sysObjectID, then SSH banner/identification with stored credentials only. No port-scan sweeps, no brute force, no credential guessing.",
+    "Results are proposals: operator reviews and explicitly adopts a discovered device. Discovery never auto-onboards."
+  ],
+
+  "security": {
+    "authn_authz": [
+      "JWT access (short-lived) + refresh with rotation and revocation list in Redis; Argon2id hashing; account lockout/backoff on repeated failures.",
+      "RBAC roles: ADMIN, NETWORK_ADMIN, OPERATOR, AUDITOR, READ_ONLY with a permission matrix defined in code and documented in SECURITY.md. Enforce with dependencies, not ad-hoc checks.",
+      "Optional per-device-group scoping of permissions."
+    ],
+    "hardening": [
+      "Rate limiting (global, per-user, stricter on auth and execute-command), CORS allowlist from env, secure headers (HSTS, X-Content-Type-Options, frame protections, CSP for docs), request size limits, strict Pydantic validation, trusted-host middleware.",
+      "Secrets: encryption at rest (AES-256-GCM/MultiFernet, key id + rotation procedure), SecretStr everywhere, write-only fields in API, central log redaction filter covering passwords, tokens, SNMP communities/v3 keys, RADIUS secrets, private keys.",
+      "Dependency and image scanning in CI (pip-audit, bandit, trivy). Container runs as non-root, read-only FS where practical.",
+      "Internal endpoints (RADIUS callbacks, metrics) separated from public API and network-restricted.",
+      "WebSocket auth via short-lived ticket or first-message token (never long-lived JWT in the URL query), per-channel authorization."
+    ],
+    "audit": {
+      "fields": ["id", "user", "role", "timestamp (UTC)", "source_ip", "user_agent", "device", "operation", "command_category", "request_id", "success", "result_summary", "reason"],
+      "rules": ["Append-only table (no update/delete from app role), indexed by timestamp, user, device.", "Every admin and device operation is audited, including denied attempts.", "Never log passwords, tokens, shared secrets, private keys or full configs."]
+    }
+  },
+
+  "api_contract": {
+    "style": "REST under /api/v1, OpenAPI 3.1 auto-generated, tags and examples on every route, one consistent error envelope.",
+    "conventions": [
+      "Error format: RFC 9457 problem+json with code, message, request_id, details.",
+      "Pagination: cursor or limit/offset with total, filtering and sorting via whitelisted query params.",
+      "Status codes used correctly: 200, 201, 202, 204, 400, 401, 403, 404, 409, 422, 423, 429, 502, 503, 504.",
+      "Idempotency-Key header on mutating bulk endpoints.",
+      "Health: /health/live and /health/ready (DB, Redis, Celery broker)."
+    ],
+    "websockets": ["/api/v1/ws/jobs/{job_id} live job status", "/api/v1/ws/monitoring live device metrics", "/api/v1/ws/alerts live alert stream"],
+    "frontend_contract": [
+      "Export openapi.json in CI so the React + TypeScript frontend can generate a typed client (for example openapi-typescript).",
+      "Document WebSocket message schemas (JSON Schema) in docs/API.md.",
+      "CORS configured for the frontend origin from env."
+    ]
+  },
+
+  "database": {
+    "engine": "PostgreSQL",
+    "entities": ["User", "RefreshToken", "Credential", "Device", "DeviceGroup", "Interface", "VLAN", "MacEntry", "ArpEntry", "DhcpBinding", "Acl", "AclRule", "Route", "Endpoint", "NacPolicy", "NacSession", "RadiusServer", "Backup", "Job", "JobDeviceResult", "Alert", "AlertRule", "MetricSample", "AuditLog", "Setting"],
+    "rules": [
+      "Alembic migrations only; migration up/down tested in CI against a clean database.",
+      "Indexes: device mgmt_ip (unique), MAC (canonical form), VLAN id, timestamps, status, composite (device_id, timestamp) for metrics and MAC history.",
+      "Time-series tables partitioned by month with retention job.",
+      "Timestamps are timezone-aware UTC. Use enums as native PG enums or checked strings consistently.",
+      "Avoid N+1 queries: use selectinload/joinedload deliberately, and add a test that asserts query counts for list endpoints."
+    ]
+  },
+
+  "testing": {
+    "levels": {
+      "unit": ["parsers (golden-file fixtures per VRP version)", "command classifier", "config builders", "validators", "NAC policy engine (table-driven)", "services with fake drivers", "crypto and redaction"],
+      "integration": ["PostgreSQL + Redis via testcontainers/compose", "API tests with httpx AsyncClient", "Celery tasks in eager and real-worker modes", "Alembic upgrade/downgrade"],
+      "e2e": ["Fake Huawei device: an asyncssh/paramiko-based mock SSH server replaying CLI transcripts; mock NETCONF server; SNMP simulator (snmpsim-style)"]
+    },
+    "rules": [
+      "No test requires a real Huawei device or internet access.",
+      "tests/fixtures/huawei/ contains realistic fake outputs for display version, interface brief, vlan, mac-address, arp, ip routing-table, stp, cpu/memory, dhcp snooping, and error responses, for at least two VRP generations.",
+      "Security tests: RBAC matrix, CLI injection attempts, dangerous-command gating, secret redaction in logs and responses, rate limiting.",
+      "Coverage gate: >= 85% for services, parsers, network, nac; report in CI."
+    ]
+  },
+
+  "devops": {
+    "files": ["Dockerfile (multi-stage, non-root, healthcheck)", "docker-compose.yml", "docker-compose.override.yml (dev)", ".env.example", "Makefile", ".pre-commit-config.yaml", ".github/workflows/ci.yml"],
+    "compose_services": ["backend", "worker", "beat", "postgres", "redis", "flower (optional profile)", "freeradius (optional profile, with sample config templates)"],
+    "rules": ["Healthchecks and depends_on conditions", "Named volumes", "Run migrations as a one-shot command, not on every API start in production", "Graceful shutdown for workers (finish or requeue jobs)"],
+    "ci_steps": ["ruff check", "black --check", "mypy", "pytest with coverage", "alembic upgrade/downgrade check", "bandit", "pip-audit", "docker build", "export openapi.json"]
+  },
+
+  "cli": {
+    "entry": "python -m app.cli (Typer, uses the same service layer; never bypasses RBAC/classifier/audit - runs as a configured service user)",
+    "commands": ["device list|test|command|backup", "vlan list|create", "interface list", "mac search", "nac endpoint list|show", "job list|show"],
+    "rules": ["--json output option", "Dangerous operations prompt for confirmation or require --confirm with token"]
+  },
+
+  "documentation": {
+    "files": ["README.md", "ARCHITECTURE.md (with diagrams in Mermaid)", "API.md", "SECURITY.md (threat model, RBAC matrix, secret handling)", "DEVELOPMENT.md", "DEPLOYMENT.md", "ASSUMPTIONS.md", "HARDWARE_VALIDATION.md", "docs/adr/*.md"],
+    "huawei_prerequisites_section": [
+      "SSH (stelnet) enablement and user/AAA setup",
+      "NETCONF/SNETCONF enablement and required privilege",
+      "SNMPv3 user, group and view setup",
+      "RADIUS server and AAA scheme setup",
+      "802.1X and MAC authentication setup, dynamic VLAN and quarantine/guest VLAN",
+      "Each snippet labelled with the platform family it was written for and marked VRP-VERSION-DEPENDENT"
+    ]
+  },
+
+  "implementation_phases": [
+    {
+      "id": 0, "name": "Recon and scaffolding",
+      "tasks": ["Inspect repo", "Create CLAUDE.md from claude_md_seed", "pyproject, uv, Makefile, ruff/black/mypy/pytest config, pre-commit", "Docker/compose skeleton", "docs/PROGRESS.md and ASSUMPTIONS.md"],
+      "verify": ["make lint", "make type", "make test (smoke)"]
+    },
+    {
+      "id": 1, "name": "Core platform",
+      "tasks": ["config, logging with redaction, database session management, exceptions and problem+json handlers, middleware (request id, secure headers, CORS, rate limit), health endpoints"],
+      "verify": ["make test", "docker compose up -d postgres redis && make migrate"]
+    },
+    {
+      "id": 2, "name": "Auth, RBAC, audit",
+      "tasks": ["User model, Argon2id, JWT access/refresh rotation, RBAC dependencies and permission matrix, audit service and middleware, users API"],
+      "verify": ["RBAC matrix test passes", "audit rows written for allowed and denied calls"]
+    },
+    {
+      "id": 3, "name": "Device inventory and credential vault",
+      "tasks": ["Device, DeviceGroup, Credential models + migrations", "Crypto module with key rotation", "Device CRUD API with pagination/filter/sort", "Insecure-protocol gating"],
+      "verify": ["Secrets never appear in responses or logs (test)", "alembic up/down"]
+    },
+    {
+      "id": 4, "name": "Driver layer: SSH, Telnet, classifier, parsers",
+      "tasks": ["DeviceDriver port, factory, bounded pooling, per-device locks", "Netmiko SSH and Telnet drivers", "CommandClassifier + injection guard", "Parsers with golden fixtures", "test-connection and execute-command endpoints (async via worker where long)"],
+      "verify": ["Mock SSH server e2e tests", "Classifier tests incl. unknown -> DANGEROUS"]
+    },
+    {
+      "id": 5, "name": "NETCONF and SNMP",
+      "tasks": ["Capability discovery + ModelRegistry", "get/get-config/edit-config/validate/commit/rollback", "SNMPv2c/v3 collector, counter wrap handling, entity sensors"],
+      "verify": ["Mock NETCONF and SNMP simulator tests"]
+    },
+    {
+      "id": 6, "name": "L2 features",
+      "tasks": ["VLAN", "Interfaces", "MAC", "ARP", "DHCP snooping", "STP: builders, services, APIs, bulk ops with dry-run and post-verification"],
+      "verify": ["Unit + API tests per feature", "Lockout-guard tests"]
+    },
+    {
+      "id": 7, "name": "ACL and routing",
+      "tasks": ["ACL builders/services/APIs", "Static/default routes, OSPF, BGP, RIP, VRRP, route-policy behind capability checks", "Pre/post snapshots and rollback"],
+      "verify": ["Capability-missing returns clear error", "Dangerous ACL gating tests"]
+    },
+    {
+      "id": 8, "name": "Job engine, Celery, WebSocket",
+      "tasks": ["Job models and API", "Celery app, queues, beat schedules, locks, retries, cancellation", "Redis pub/sub -> WebSocket with auth tickets"],
+      "verify": ["Worker integration tests", "WebSocket tests"]
+    },
+    {
+      "id": 9, "name": "Backups and config management",
+      "tasks": ["Backup service, hashing/dedup, diff, drift, scheduled backup, guarded restore"],
+      "verify": ["Restore refuses without token/confirmation (test)", "Diff tests"]
+    },
+    {
+      "id": 10, "name": "Monitoring, alerts, discovery",
+      "tasks": ["Metric collection + partitioned storage", "Alert rules engine + email/webhook/Telegram", "Safe discovery with subnet allowlist"],
+      "verify": ["Alert lifecycle tests", "Discovery rejects out-of-scope CIDR"]
+    },
+    {
+      "id": 11, "name": "NAC and RADIUS",
+      "tasks": ["ADR for RADIUS architecture", "Endpoint, policy, session models", "Policy engine with registries + simulate endpoint", "Internal authorize/accounting endpoints", "CoA client", "FreeRADIUS sample config templates", "Switch-side config generator"],
+      "verify": ["Table-driven policy tests", "Fail-closed behaviour test", "No arbitrary command path exists (test)"]
+    },
+    {
+      "id": 12, "name": "CLI, hardening, docs, delivery",
+      "tasks": ["Typer CLI", "Security review pass (bandit, pip-audit)", "All docs", "Full docker compose run", "CI workflow", "HARDWARE_VALIDATION checklist"],
+      "verify": ["make lint type test", "docker compose up --build healthy", "alembic upgrade head on clean DB", "openapi.json exported"]
+    }
+  ],
+
+  "quality_gates": {
+    "every_phase": ["ruff check . passes", "black --check . passes", "mypy --strict app passes", "pytest passes", "no secrets in git diff", "no TODO in core paths", "imports verified (python -c 'import app.main')", "migrations verified"],
+    "code_standards": ["Full type hints", "Docstrings on public classes/functions", "SOLID, DRY, KISS", "Structured logging with request/job/device context", "Explicit exception hierarchy, no bare except", "Async only where it does not block; blocking network libs isolated in workers/threadpool"]
+  },
+
+  "final_deliverables": [
+    "Complete project tree",
+    "Setup instructions (local and Docker)",
+    ".env.example",
+    "Database migration instructions",
+    "Example Huawei configuration (SSH, NETCONF, SNMPv3, RADIUS, 802.1X, MAB) labelled by family/version",
+    "API usage examples (curl and WebSocket)",
+    "Real test, lint and type-check output (not summaries)",
+    "List of assumptions and of items requiring validation on real hardware"
+  ],
+
+  "definition_of_done": [
+    "docker compose up --build starts backend, worker, beat, postgres, redis with passing healthchecks",
+    "alembic upgrade head works on an empty database and downgrade works",
+    "All unit, integration and e2e tests pass without real devices",
+    "ruff, black, mypy, bandit, pip-audit are clean",
+    "Every device operation is classified, authorized, audited and (when long) runs as a job",
+    "No secret appears in logs, API responses, fixtures or docs",
+    "OpenAPI is complete and exported for the React + TypeScript frontend",
+    "Documentation lets a new engineer deploy and connect to a real, authorized Huawei network"
+  ],
+
+  "ethics_and_authorization": "This platform is for authorized network administration only. Operate exclusively on explicitly configured devices and approved subnets. Do not implement or document unauthorized access, credential theft, stealth or persistence."
+}

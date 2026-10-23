@@ -1,0 +1,16 @@
+# Development overrides: live reload, source mount, exposed DB/Redis on localhost.
+services:
+  backend:
+    read_only: false
+    environment:
+      ENVIRONMENT: dev
+    volumes: ["./app:/app/app:ro"]
+    command: ["uvicorn", "app.main:create_app", "--factory", "--host", "0.0.0.0",
+              "--port", "8000", "--reload"]
+  worker:
+    read_only: false
+    volumes: ["./app:/app/app:ro"]
+  postgres:
+    ports: ["127.0.0.1:5432:5432"]
+  redis:
+    ports: ["127.0.0.1:6379:6379"]

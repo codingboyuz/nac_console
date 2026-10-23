@@ -1,0 +1,114 @@
+[project]
+name = "huawei-nac-backend"
+version = "0.1.0"
+description = "Huawei network automation, monitoring and NAC platform - backend"
+readme = "docs/README.md"
+requires-python = ">=3.12"
+license = { text = "Proprietary" }
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.8",
+    "pydantic-settings>=2.4",
+    "email-validator>=2.2",
+    "httpx>=0.27",
+    "sqlalchemy[asyncio]>=2.0.32",
+    "asyncpg>=0.29",
+    "alembic>=1.13",
+    "celery[redis]>=5.4",
+    "redis>=5.0",
+    "netmiko>=4.4",
+    "paramiko>=3.4",
+    "ncclient>=0.6.15",
+    "pysnmp>=7.1",
+    "argon2-cffi>=23.1",
+    "pyjwt>=2.9",
+    "cryptography>=43",
+    "structlog>=24.4",
+    "prometheus-client>=0.20",
+    "typer>=0.12",
+    "pyrad>=2.4",
+    "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+napalm = ["napalm>=5.0"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=5.0",
+    "aiosqlite>=0.20",
+    "fakeredis>=2.24",
+    "ruff>=0.6",
+    "black>=24.8",
+    "mypy>=1.11",
+    "pre-commit>=3.8",
+    "bandit>=1.7",
+    "pip-audit>=2.7",
+    "asyncssh>=2.17",
+    "types-paramiko",
+    "celery-types>=0.22",
+    "pgserver>=0.1.4",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["migrations/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "C4", "SIM", "RUF", "ASYNC", "N", "PL", "PT", "T20"]
+ignore = [
+    "PLR0913",  # many-argument constructors are common in typed builders
+    "PLR2004",  # magic values in parsers are protocol constants
+    "RUF012",
+    "N818",  # domain exceptions read better without an Error suffix (NotFound, Forbidden)
+    "PLC0415",  # lazy imports keep heavy network libs out of the API process
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "S311", "PLR2004", "PLR0915", "S108"]
+"migrations/**" = ["E501"]
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+warn_unused_ignores = false
+exclude = ["migrations/", "tests/"]
+
+[[tool.mypy.overrides]]
+module = ["netmiko.*", "ncclient.*", "pysnmp.*", "pyrad.*", "celery.*", "kombu.*", "fakeredis.*", "asyncssh.*", "napalm.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = [
+    "integration: needs DB/Redis (sqlite/fakeredis by default, postgres when TEST_DATABASE_URL is set)",
+    "e2e: uses mock device servers",
+]
+filterwarnings = ["ignore::DeprecationWarning:pysnmp.*", "ignore::DeprecationWarning:paramiko.*"]
+
+[tool.coverage.run]
+source = ["app"]
+branch = true
+omit = ["app/cli/__main__.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+
+[tool.bandit]
+exclude_dirs = ["tests", "migrations"]

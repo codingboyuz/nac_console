@@ -1,0 +1,113 @@
+name: huawei-nac
+
+x-app: &app
+  build: .
+  image: huawei-nac-backend:latest
+  env_file: .env
+  environment:
+    DATABASE_URL: postgresql+asyncpg://nac:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/nac
+    REDIS_URL: redis://redis:6379/0
+  read_only: true
+  tmpfs: [/tmp]
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: nac
+      POSTGRES_USER: nac
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nac -d nac"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1000"]
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  migrate:
+    <<: *app
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  backend:
+    <<: *app
+    ports: ["8000:8000"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+
+  worker:
+    <<: *app
+    # cap NET_RAW is needed for ICMP discovery probes only.
+    cap_add: [NET_RAW]
+    command: ["celery", "-A", "app.workers.celery_app", "worker",
+              "-Q", "config,polling,discovery,alerts,default", "-l", "info",
+              "--concurrency", "4", "--max-tasks-per-child", "200"]
+    stop_grace_period: 120s
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.workers.celery_app inspect ping -d celery@$$HOSTNAME -t 5 | grep -q pong"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+
+  beat:
+    <<: *app
+    command: ["celery", "-A", "app.workers.celery_app", "beat", "-l", "info",
+              "--schedule", "/tmp/celerybeat-schedule"]
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/celerybeat-schedule"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+
+  flower:
+    <<: *app
+    profiles: ["flower"]
+    command: ["celery", "-A", "app.workers.celery_app", "flower", "--port=5555"]
+    ports: ["127.0.0.1:5555:5555"]
+    depends_on:
+      redis: { condition: service_healthy }
+
+  freeradius:
+    image: freeradius/freeradius-server:3.2.3
+    profiles: ["radius"]
+    command: ["-X"]
+    volumes:
+      - ./deploy/freeradius/mods-available/rest:/etc/raddb/mods-enabled/rest:ro
+      - ./deploy/freeradius/sites-available/nac:/etc/raddb/sites-enabled/default:ro
+      - ./deploy/freeradius/clients.conf:/etc/raddb/clients.conf:ro
+    environment:
+      NAC_BACKEND_URL: http://backend:8000
+      NAC_INTERNAL_TOKEN: ${INTERNAL_API_TOKEN:?set INTERNAL_API_TOKEN}
+    ports: ["1812:1812/udp", "1813:1813/udp"]
+    depends_on:
+      backend: { condition: service_healthy }
+
+volumes:
+  pgdata:
+  redisdata:
