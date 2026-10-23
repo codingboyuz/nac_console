@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
 import hmac
 import ipaddress
 
@@ -30,9 +32,24 @@ async def require_internal_network(request: Request) -> None:
         raise Forbidden("source network not allowed for internal endpoint")
 
 
+def _supplied_token(request: Request) -> str:
+    """``X-Internal-Token`` header, or HTTP Basic password (FreeRADIUS rlm_rest ``auth=basic``)."""
+    header = request.headers.get("x-internal-token")
+    if header:
+        return header
+    auth = request.headers.get("authorization", "")
+    if auth.lower().startswith("basic "):
+        try:
+            decoded = base64.b64decode(auth[6:], validate=True).decode()
+        except (binascii.Error, UnicodeDecodeError):
+            return ""
+        return decoded.partition(":")[2]
+    return ""
+
+
 async def require_internal_token(request: Request) -> None:
-    """Constant-time shared token check (header ``X-Internal-Token``)."""
+    """Constant-time shared token check."""
     expected = request.app.state.settings.internal_api_token.get_secret_value()
-    supplied = request.headers.get("x-internal-token", "")
+    supplied = _supplied_token(request)
     if not supplied or not hmac.compare_digest(supplied.encode(), expected.encode()):
         raise Unauthorized("invalid internal token")

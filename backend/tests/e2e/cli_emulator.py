@@ -22,6 +22,26 @@ _CONFIRM = {
 }
 
 
+_NESTED_VIEWS = (
+    "radius-server template",
+    "aaa",
+    "authentication-scheme",
+    "accounting-scheme",
+    "domain ",
+    "dot1x-access-profile name",
+    "mac-access-profile name",
+    "authentication-profile name",
+    "ospf",
+    "bgp",
+    "rip",
+    "user-interface",
+    "route-policy",
+    "area ",
+    "ipv4-family",
+)
+_PROFILE_REFS = ("dot1x-access-profile ", "mac-access-profile ")
+
+
 @dataclass
 class HuaweiCliEmulator:
     hostname: str = "SW-01"
@@ -41,6 +61,7 @@ class HuaweiCliEmulator:
     reboot_scheduled: bool = False
     view: str = "user"
     pending_confirm: str | None = None
+    parents: list[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         if not self.vlans and "display vlan" in self.outputs:
@@ -174,9 +195,13 @@ class HuaweiCliEmulator:
             return CRLF + "Enter system view, return user view with return command."
         if cmd == "return":
             self.view = "user"
+            self.parents.clear()
             return ""
         if cmd == "quit":
-            self.view = "system" if self.view not in {"system", "user"} else "user"
+            if self.parents:
+                self.view = self.parents.pop()
+            else:
+                self.view = "system" if self.view not in {"system", "user"} else "user"
             return ""
         if self.view == "user":
             return self._user_view(cmd)
@@ -197,6 +222,13 @@ class HuaweiCliEmulator:
             self.view = "vlan" + cmd.split(" ", 1)[1]
         elif cmd.startswith("acl "):
             self.view = "acl-" + cmd.split()[2]
+        elif cmd.startswith(_NESTED_VIEWS) and not (
+            view.startswith("auth") and cmd.startswith(_PROFILE_REFS)
+        ):
+            # Generic sub-view (aaa, radius template, profiles, routing processes...).
+            if view not in {"system", "user"}:
+                self.parents.append(view)
+            self.view = cmd.replace(" ", "_")[:40]
         if self.family == "CE":
             self.candidate.append((view, cmd))
         else:

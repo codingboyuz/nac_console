@@ -1,0 +1,56 @@
+# FreeRADIUS virtual server for Huawei NAC (802.1X + MAB). Template: review before use.
+#
+# - 802.1X: EAP terminates here (PEAP/EAP-TLS configured in mods-enabled/eap; user credentials
+#   are verified against your directory - LDAP/AD or certificates). The backend only authorizes.
+# - MAB: Huawei sends User-Name = User-Password = client MAC; the backend decides.
+# - Reply attributes (Tunnel-Type/Tunnel-Medium-Type/Tunnel-Private-Group-Id, Filter-Id,
+#   Session-Timeout) come from the backend's JSON response ("reply:<Attr>" keys).
+# - HTTP 401 from the backend means Access-Reject.
+
+server default {
+	listen {
+		type = auth
+		ipaddr = *
+		port = 1812
+	}
+	listen {
+		type = acct
+		ipaddr = *
+		port = 1813
+	}
+
+	authorize {
+		filter_username
+		preprocess
+		eap {
+			ok = return
+		}
+		# MAB requests carry no EAP-Message: let the backend decide and accept PAP if it does.
+		if (!EAP-Message) {
+			rest
+			if (ok || updated) {
+				update control {
+					Auth-Type := Accept
+				}
+			}
+		}
+	}
+
+	authenticate {
+		eap
+	}
+
+	post-auth {
+		# 802.1X users authenticated by EAP get their VLAN / ACL from the policy engine.
+		if (EAP-Message) {
+			rest
+		}
+		Post-Auth-Type REJECT {
+			attr_filter.access_reject
+		}
+	}
+
+	accounting {
+		rest
+	}
+}

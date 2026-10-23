@@ -23,6 +23,7 @@ from app.services.audit_service import AuditService
 from app.services.auth_service import AuthService
 from app.services.backup_service import BackupService
 from app.services.change_service import ChangeService
+from app.services.coa_service import CoaService
 from app.services.collection_service import CollectionService
 from app.services.command_service import CommandService
 from app.services.confirmation_service import ConfirmationService
@@ -35,7 +36,11 @@ from app.services.job_runner import JobRunner
 from app.services.job_service import InlineDispatcher, JobService, celery_dispatcher
 from app.services.mac_service import MacService
 from app.services.monitoring_service import MonitoringService
+from app.services.nac_policy_service import NacPolicyService
+from app.services.nac_provisioning import NacProvisioningService
+from app.services.nac_service import NacService
 from app.services.notifications import default_channels
+from app.services.radius_service import RadiusServerService
 from app.services.routing_service import RoutingService
 from app.services.settings_service import SettingsService
 from app.services.stp_service import StpService
@@ -88,6 +93,11 @@ class ServiceContainer:
     monitoring: MonitoringService
     discovery: DiscoveryService
     settings_store: SettingsService
+    nac_policies: NacPolicyService
+    nac: NacService
+    coa: CoaService
+    radius: RadiusServerService
+    nac_provisioning: NacProvisioningService
     inline_dispatcher: InlineDispatcher | None = None
 
     @classmethod
@@ -131,6 +141,8 @@ class ServiceContainer:
             settings, db, redis, devices, connector, collection, alerts, events
         )
         discovery = DiscoveryService(settings, db, credentials, devices, audit)
+        nac_policies = NacPolicyService(db, audit)
+        radius = RadiusServerService(db, vault)
         container = cls(
             settings=settings,
             db=db,
@@ -163,6 +175,11 @@ class ServiceContainer:
             monitoring=monitoring,
             discovery=discovery,
             settings_store=SettingsService(db, audit),
+            nac_policies=nac_policies,
+            nac=NacService(settings, db, redis, nac_policies, audit, events),
+            coa=CoaService(db, vault, audit),
+            radius=radius,
+            nac_provisioning=NacProvisioningService(settings, devices, collection, changes, radius),
         )
         if (dispatch or settings.job_dispatch) == "inline":
             container.inline_dispatcher = InlineDispatcher(lambda: JobRunner(container))

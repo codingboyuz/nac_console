@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
+from app.api import internal_radius
 from app.api.deps import rate_limited
 from app.api.v1 import (
     acl,
@@ -16,6 +17,7 @@ from app.api.v1 import (
     jobs,
     mac,
     monitoring,
+    nac,
     routing,
     stp,
     users,
@@ -35,9 +37,12 @@ for _module in (vlans, interfaces, mac, stp, acl, routing):
     api_router.include_router(_module.router)
 api_router.include_router(jobs.router)
 api_router.include_router(monitoring.router)
+api_router.include_router(nac.router)
+api_router.include_router(nac.radius_router)
 api_router.include_router(backups.router)
 api_router.include_router(backups.device_router)
 api_router.include_router(arp.router)
 api_router.include_router(arp.dhcp_router)
 
 internal_router = APIRouter(prefix="/internal/v1")
+internal_router.include_router(internal_radius.router)

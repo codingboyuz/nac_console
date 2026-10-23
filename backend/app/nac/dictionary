@@ -1,0 +1,37 @@
+# Minimal RADIUS dictionary (RFC 2865/2866/3580/5176 subset) used by the CoA client and the
+# development reference server.
+ATTRIBUTE	User-Name		1	string
+ATTRIBUTE	User-Password		2	string
+ATTRIBUTE	NAS-IP-Address		4	ipaddr
+ATTRIBUTE	NAS-Port		5	integer
+ATTRIBUTE	Service-Type		6	integer
+ATTRIBUTE	Framed-IP-Address	8	ipaddr
+ATTRIBUTE	Filter-Id		11	string
+ATTRIBUTE	Reply-Message		18	string
+ATTRIBUTE	State			24	octets
+ATTRIBUTE	Class			25	octets
+ATTRIBUTE	Session-Timeout		27	integer
+ATTRIBUTE	Called-Station-Id	30	string
+ATTRIBUTE	Calling-Station-Id	31	string
+ATTRIBUTE	NAS-Identifier		32	string
+ATTRIBUTE	Acct-Status-Type	40	integer
+ATTRIBUTE	Acct-Input-Octets	42	integer
+ATTRIBUTE	Acct-Output-Octets	43	integer
+ATTRIBUTE	Acct-Session-Id		44	string
+ATTRIBUTE	Acct-Terminate-Cause	49	integer
+ATTRIBUTE	Event-Timestamp		55	integer
+ATTRIBUTE	Tunnel-Type		64	integer	has_tag
+ATTRIBUTE	Tunnel-Medium-Type	65	integer	has_tag
+ATTRIBUTE	Message-Authenticator	80	octets
+ATTRIBUTE	Tunnel-Private-Group-Id	81	string	has_tag
+ATTRIBUTE	NAS-Port-Id		87	string
+ATTRIBUTE	Error-Cause		101	integer
+
+VALUE	Service-Type		Framed-User		2
+VALUE	Service-Type		Call-Check		10
+VALUE	Acct-Status-Type	Start			1
+VALUE	Acct-Status-Type	Stop			2
+VALUE	Acct-Status-Type	Interim-Update		3
+VALUE	Tunnel-Type		VLAN			13
+VALUE	Tunnel-Medium-Type	IEEE-802		6
+VALUE	Error-Cause		Session-Context-Not-Found	503

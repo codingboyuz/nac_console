@@ -17,7 +17,7 @@ Re-read at the start of every session.
 | 8 | Job engine, Celery, WebSocket | done |
 | 9 | Backups and config management | done |
 | 10 | Monitoring, alerts, discovery | done |
-| 11 | NAC and RADIUS | pending |
+| 11 | NAC and RADIUS | done |
 | 12 | CLI, hardening, docs, delivery | pending |
 
 ## Log
@@ -172,9 +172,34 @@ Re-read at the start of every session.
 - Found and fixed a real PostgreSQL issue (cannot attach a month partition while DEFAULT holds
   rows for it). Full suite: 582 passed.
 
+### Phase 11 - NAC and RADIUS
+- ADR `docs/adr/0001-radius-architecture.md`: FreeRADIUS (rlm_rest) in production, backend
+  owns policy/endpoints/audit; pyrad reference server for dev/test only (flag, refused in prod).
+- Models endpoints / nac_policies (+versions) / nac_sessions / radius_servers (migration 0008).
+- Policy engine (`app/domain/nac/policy.py`): pydantic discriminated unions of whitelisted
+  conditions (mac_registered, endpoint_group_is, user_in_group, device_type_is, oui_in,
+  time_window, status_is, auth_method_is, site_is, all_of/any_of/not, always) and actions
+  (assign_vlan with Filter-Id/Session-Timeout, guest, quarantine, reject, accept); ascending
+  priority, first match, mandatory default (unknown -> quarantine VLAN), versioning,
+  `POST /nac/policies/simulate`.
+- Internal API `/internal/v1/radius/authorize|accounting`, `/internal/v1/profiling/dhcp`:
+  network allowlist + token (header or HTTP Basic for rlm_rest) + separate rate limit.
+  rlm_rest JSON accepted; reply `reply:<Attr>`; 401 = reject. Decisions audited with policy id;
+  fail-closed (quarantine) by default, per-site fail-open via settings `nac.site_fail_modes`.
+  5 rejects in 5 min -> `authentication_failures` alert.
+- Profiling: OUI, DHCP option 55 / vendor class, LLDP hints with confidence + reasons.
+- CoA client (RFC 5176 Disconnect/CoA-Request) over a portable UDP exchange (pyrad's client
+  needs select.poll, unavailable on Windows), audited; endpoint block disconnects sessions.
+- Switch-side provisioning generator (S + CE, VRP-VERSION-DEPENDENT), preview with masked
+  secrets and diff against current AAA/RADIUS config, deploy only via `nac.provision` job with
+  job-level DANGEROUS confirmation. FreeRADIUS templates in `deploy/freeradius/`.
+- Fixed during the phase: default NAC policy missing when a custom policy was created first;
+  classification reasons quoted raw lines (could expose RADIUS keys) - now redacted at source.
+- Full suite: 621 passed.
+
 ## Open issues
 - Docker / compose cannot be executed on the build host (no Docker). See ASSUMPTIONS A1.
 - A real Celery worker against a real Redis broker was not run on the build host (no Redis); the task runs eagerly in tests.
 
 ## Next step
-- Phase 11: NAC + RADIUS (ADR, endpoints, policy engine, internal authorize/accounting, CoA, FreeRADIUS templates, switch config generator).
+- Phase 12: Typer CLI, security review (bandit, pip-audit), docs, CI workflow, OpenAPI export, HARDWARE_VALIDATION.

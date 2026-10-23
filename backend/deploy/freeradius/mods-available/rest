@@ -1,0 +1,56 @@
+# FreeRADIUS 3.2 rlm_rest -> Huawei NAC backend (internal API). Template: review before use.
+# The backend URL and token come from the container environment (NAC_BACKEND_URL,
+# NAC_INTERNAL_TOKEN). Prefer https + a reverse proxy enforcing mTLS in production.
+rest {
+	tls {
+		check_cert = yes
+		check_cert_cn = yes
+	}
+
+	connect_uri = "$ENV{NAC_BACKEND_URL}"
+
+	# The backend accepts the internal token as the HTTP Basic password.
+	authorize {
+		uri = "${..connect_uri}/internal/v1/radius/authorize"
+		method = "post"
+		body = "json"
+		auth = "basic"
+		username = "freeradius"
+		password = "$ENV{NAC_INTERNAL_TOKEN}"
+		tls = ${..tls}
+		timeout = 4
+	}
+
+	post-auth {
+		uri = "${..connect_uri}/internal/v1/radius/authorize"
+		method = "post"
+		body = "json"
+		auth = "basic"
+		username = "freeradius"
+		password = "$ENV{NAC_INTERNAL_TOKEN}"
+		tls = ${..tls}
+		timeout = 4
+	}
+
+	accounting {
+		uri = "${..connect_uri}/internal/v1/radius/accounting"
+		method = "post"
+		body = "json"
+		auth = "basic"
+		username = "freeradius"
+		password = "$ENV{NAC_INTERNAL_TOKEN}"
+		tls = ${..tls}
+		timeout = 4
+	}
+
+	pool {
+		start = 4
+		min = 4
+		max = 64
+		spare = 8
+		uses = 0
+		retry_delay = 5
+		lifetime = 0
+		idle_timeout = 60
+	}
+}

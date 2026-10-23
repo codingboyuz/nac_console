@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import StrEnum
 
+from app.core.redaction import redact_text
+
 
 class CommandCategory(StrEnum):
     SAFE = "SAFE"
@@ -49,5 +51,6 @@ class Classification:
         if not lines:
             return cls(CommandCategory.SAFE, "empty", ())
         top = worst(*(item.category for item in lines))
-        reasons = [f"{i.line!r}: {i.reason}" for i in lines if i.category is top]
+        # Lines may carry secrets (RADIUS keys, restored ciphers): never quote them unmasked.
+        reasons = [f"{redact_text(i.line)!r}: {i.reason}" for i in lines if i.category is top]
         return cls(top, "; ".join(reasons[:5]), tuple(lines))

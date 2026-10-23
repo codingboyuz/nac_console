@@ -82,6 +82,14 @@ class PollParams(_Params):
     scope: Literal["cpu", "interfaces", "all"] = "all"
 
 
+class NacProvisionParams(_Params):
+    radius_server_id: str
+    interfaces: list[str] = Field(default_factory=list, max_length=512)
+    mode: Literal["dot1x", "mab", "both"] = "both"
+    guest_vlan: int | None = Field(default=None, ge=1, le=4094)
+    quarantine_vlan: int | None = Field(default=None, ge=1, le=4094)
+
+
 class ShowParams(_Params):
     command: str = Field(min_length=1, max_length=512)
 
@@ -188,6 +196,21 @@ async def _poll(jc: JobContext, device: Device) -> dict[str, Any]:
     return {"samples": len(samples)}
 
 
+async def _nac_provision(jc: JobContext, device: Device) -> dict[str, Any]:
+    import uuid
+
+    from app.services.nac_provisioning import ProvisionRequest
+
+    p = NacProvisionParams.model_validate(jc.params)
+    req = ProvisionRequest(
+        uuid.UUID(p.radius_server_id), tuple(p.interfaces), p.mode, p.guest_vlan, p.quarantine_vlan
+    )
+    result = await jc.services.nac_provisioning.deploy(
+        jc.principal, jc.ctx, device, req, jc.change_options()
+    )
+    return _change(result)
+
+
 async def _show(jc: JobContext, device: Device) -> dict[str, Any]:
     from app.services.command_service import CommandRequest
 
@@ -234,6 +257,14 @@ REGISTRY: dict[str, JobType] = {
         JobType("device.show", Permission.DEVICE_SHOW, D, ShowParams, _show),
         JobType("backup.run", Permission.BACKUPS_CREATE, D, BackupParams, _backup),
         JobType("poll.metrics", Permission.DEVICE_SHOW, P, PollParams, _poll),
+        JobType(
+            "nac.provision",
+            Permission.NAC_POLICY_WRITE,
+            C,
+            NacProvisionParams,
+            _nac_provision,
+            True,
+        ),
     )
 }
 

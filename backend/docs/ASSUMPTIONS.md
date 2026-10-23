@@ -34,3 +34,7 @@ Each entry: the ambiguity, the choice made (safest reasonable option), and why.
 | A28 | Interface-down alerts | Only admin-up interfaces produce `if_oper` samples, so shut ports never alert. | Avoids noise. |
 | A29 | ICMP in discovery | Uses the system `ping` binary (fixed argv, validated IP, no shell) instead of raw sockets, so the worker needs no extra capabilities beyond NET_RAW for ping itself. | Least privilege. |
 | A30 | Telegram/webhook destinations | Destinations live in settings; tokens/secrets only in env. Webhooks must be https unless `allow_http` is set for a lab receiver. | No secrets in DB. |
+| A31 | Policy priority order | Ascending: lower number evaluated first; the mandatory default sits at 2147483647 and may not be deleted, disabled, moved or turned into a plain accept. | Matches firewall-style rule ordering; documented in API. |
+| A32 | CoA secret | CoA uses the shared secret of the enabled RADIUS server definition (the same template secret the switches use for `radius-server authorization`). | Single secret per deployment; per-NAS secrets can be added later. |
+| A33 | 802.1X credentials | Never reach the backend: FreeRADIUS verifies EAP against the directory; the backend authorizes only. | Least privilege. |
+| A34 | NAS-Port-Id | Stored raw (Huawei format `slot=0;subslot=0;port=5;vlanid=1` is VRP-VERSION-DEPENDENT). | Avoid wrong parsing. |

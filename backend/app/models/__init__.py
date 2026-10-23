@@ -15,6 +15,7 @@ from app.models.monitoring import (
     MaintenanceWindow,
     MetricSample,
 )
+from app.models.nac import Endpoint, NacPolicy, NacPolicyVersion, NacSession, RadiusServer
 from app.models.network_state import ArpEntry, DhcpBinding, Interface, MacEntry, MacMove, Vlan
 from app.models.user import RefreshToken, User
 
@@ -34,6 +35,7 @@ __all__ = [
     "DhcpBinding",
     "DiscoveredDevice",
     "DiscoveryRun",
+    "Endpoint",
     "Interface",
     "Job",
     "JobDeviceResult",
@@ -41,6 +43,10 @@ __all__ = [
     "MacMove",
     "MaintenanceWindow",
     "MetricSample",
+    "NacPolicy",
+    "NacPolicyVersion",
+    "NacSession",
+    "RadiusServer",
     "RefreshToken",
     "Route",
     "Setting",

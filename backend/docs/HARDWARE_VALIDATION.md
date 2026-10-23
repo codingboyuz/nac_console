@@ -28,3 +28,10 @@ on a real, authorized lab device before production use. Note the device model an
 - [ ] `display saved-configuration` availability and output on S and CE.
 - [ ] Restore merge plan on a lab device (VLAN batch diff, interface body undo, static routes).
 - [ ] `schedule reboot delay` + `undo schedule reboot` prompts on S-series; `commit trial` on CE.
+
+## NAC / RADIUS
+- [ ] Generated provisioning template on S5735 (V200R019) and CE (V8): unified-mode requirement, `authentication event` options, `dot1x enable` on CE.
+- [ ] Huawei attribute formats: Calling-Station-Id MAC format, NAS-Port-Id layout, MAB User-Name/Password.
+- [ ] Dynamic VLAN via Tunnel-* attributes, Filter-Id -> ACL mapping (`acl` UCL vs number).
+- [ ] CoA: `radius-server authorization` + Disconnect-ACK/NAK and CoA-ACK behaviour.
+- [ ] FreeRADIUS 3.2 rlm_rest JSON body/response handling with the templates in deploy/freeradius.
