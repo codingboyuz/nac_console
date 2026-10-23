@@ -104,7 +104,7 @@ WARNING_RULES: tuple[Rule, ...] = (
     _r(r"^(undo )?(ospf|bgp|rip|isis)( \d+)?\b", W, "routing protocol process"),
     _r(
         r"^(undo )?(area|network|peer|import-route|default-route-advertise|router-id|"
-        r"silent-interface|summary|filter-policy|ipv4-family|preference)\b",
+        r"silent-interface|summary|filter-policy|ipv4-family|preference|version \d)\b",
         W,
         "routing setting",
     ),

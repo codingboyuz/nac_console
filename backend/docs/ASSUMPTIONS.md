@@ -23,3 +23,6 @@ Each entry: the ambiguity, the choice made (safest reasonable option), and why.
 | A17 | Unexpected DHCP server | Detected as DHCP-snooping `trusted` on ports that are not declared uplinks (config audit), plus binding/ARP mismatches. Packet-level rogue server detection needs syslog/trap ingestion. | `display` output has no per-server data. |
 | A18 | Interface names in URLs | Routes use `{interface:path}`; clients may URL-encode `/` as `%2F`. | Huawei names contain slashes. |
 | A19 | Rollback on verification failure | Builders emit a best-effort inverse plan; for CE the candidate is never committed when the push fails. | Device-side undo for S-series. |
+| A20 | Routing capability detection | Probe display commands per feature; "Unrecognized command" means unsupported. Cached until `refresh=true`. | VRP licences/models differ; no YANG on S-series CLI. |
+| A21 | BGP/OSPF verification | Post-change checks confirm configuration acceptance and route-table diff; neighbor Established/Full is reported, not required (sessions may take minutes). | Avoids false rollbacks. |
+| A22 | ACL desired state | The platform stores the last successfully deployed definition per device; rule CRUD edits that definition and redeploys the diff. ACLs never deployed through the platform are read-only (live view). | Prevents silently overwriting hand-made ACLs. |

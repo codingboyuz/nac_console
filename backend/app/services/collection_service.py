@@ -40,6 +40,12 @@ class CollectionService:
         self._db = db
         self._connector = connector
 
+    async def run[R](
+        self, device: Device, operation: Callable[[DeviceDriver], R], principal: Principal | None
+    ) -> R:
+        """Run an arbitrary read-only driver operation (probes) through the connector."""
+        return await self._connector.run(device, operation, principal)
+
     async def show(self, device: Device, command: str, principal: Principal | None = None) -> str:
         def run(driver: DeviceDriver) -> str:
             return driver.run_show(command).output

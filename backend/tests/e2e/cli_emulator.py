@@ -33,6 +33,8 @@ class HuaweiCliEmulator:
     candidate: list[tuple[str, str]] = field(default_factory=list)
     vlans: dict[int, str] = field(default_factory=dict)
     interfaces: dict[str, list[str]] = field(default_factory=dict)
+    acls: dict[str, dict[int, str]] = field(default_factory=dict)
+    vty_acl: str | None = None
     saved: bool = False
     commits: int = 0
     reboot_scheduled: bool = False
@@ -108,9 +110,40 @@ class HuaweiCliEmulator:
         self.reboot_scheduled = pending == "schedule"
         return CRLF + "Info: Succeeded in setting the schedule."
 
+    def render_running(self) -> str:
+        lines = ["#", f"sysname {self.hostname}"]
+        for name, body in sorted(self.interfaces.items()):
+            lines += ["#", f"interface {name}", *[f" {b}" for b in body]]
+        for ident, rules in sorted(self.acls.items()):
+            lines += ["#", f"acl number {ident}", *[f" {r}" for _, r in sorted(rules.items())]]
+        lines += ["#", *[c for c in self.running_config if c.startswith("ip route-static")]]
+        lines += ["#", "user-interface vty 0 4"]
+        if self.vty_acl:
+            lines.append(f" acl {self.vty_acl} inbound")
+        return "\n".join([*lines, "#", "return"])
+
+    def render_acls(self, which: str) -> str:
+        blocks = []
+        for ident, rules in sorted(self.acls.items()):
+            if which not in {"all", ident}:
+                continue
+            kind = "Basic" if ident.startswith("2") else "Advanced"
+            blocks += [f"{kind} ACL {ident}, {len(rules)} rules", "Acl's step is 5"]
+            blocks += [f" {text} (0 matches)" for _, text in sorted(rules.items())]
+        return "\n".join(blocks)
+
     def _display(self, cmd: str) -> str:
         text: str | None
-        if cmd == "display vlan":
+        if "|" in cmd:
+            base, _, flt = cmd.partition("|")
+            body = self._display(base.strip())
+            needle = flt.strip().removeprefix("include").strip()
+            return CRLF.join(line for line in body.split(CRLF) if needle in line)
+        if cmd == "display current-configuration":
+            text = self.render_running()
+        elif cmd.startswith("display acl "):
+            text = self.render_acls(cmd.removeprefix("display acl ").strip())
+        elif cmd == "display vlan":
             text = self.render_vlans()
         elif cmd.startswith("display current-configuration interface "):
             name = cmd.rsplit(" ", 1)[1]
@@ -158,6 +191,8 @@ class HuaweiCliEmulator:
             self.view = cmd.split(" ", 1)[1].replace(" ", "")
         elif cmd.startswith("vlan ") and not cmd.startswith("vlan batch"):
             self.view = "vlan" + cmd.split(" ", 1)[1]
+        elif cmd.startswith("acl "):
+            self.view = "acl-" + cmd.split()[2]
         if self.family == "CE":
             self.candidate.append((view, cmd))
         else:
@@ -166,6 +201,23 @@ class HuaweiCliEmulator:
 
     def _apply(self, view: str, cmd: str) -> None:
         self.running_config.append(cmd)
+        if cmd.startswith("acl "):
+            self.acls.setdefault(cmd.split()[2], {})
+            return
+        if cmd.startswith("undo acl "):
+            self.acls.pop(cmd.split()[3], None)
+            return
+        if cmd.startswith("undo ip route-static "):
+            line = cmd.removeprefix("undo ")
+            self.running_config[:] = [c for c in self.running_config if c not in (line, cmd)]
+            return
+        if view.startswith("acl-"):
+            rules = self.acls.setdefault(view.removeprefix("acl-"), {})
+            if cmd.startswith("undo rule "):
+                rules.pop(int(cmd.split()[2]), None)
+            elif cmd.startswith("rule "):
+                rules[int(cmd.split()[1])] = cmd
+            return
         if cmd.startswith("vlan batch "):
             for vid in parse_vlan_list(cmd.removeprefix("vlan batch ")):
                 self.vlans.setdefault(vid, "")

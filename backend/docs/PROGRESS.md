@@ -13,7 +13,7 @@ Re-read at the start of every session.
 | 4 | Driver layer: SSH, Telnet, classifier, parsers | done |
 | 5 | NETCONF and SNMP | done |
 | 6 | L2 features | done |
-| 7 | ACL and routing | pending |
+| 7 | ACL and routing | done |
 | 8 | Job engine, Celery, WebSocket | pending |
 | 9 | Backups and config management | pending |
 | 10 | Monitoring, alerts, discovery | pending |
@@ -100,8 +100,24 @@ Re-read at the start of every session.
 - Bulk multi-device execution is delivered with the job engine (phase 8).
 - Full suite: 519 passed.
 
+### Phase 7 - ACL and routing
+- ACL domain (`app/domain/acl.py`): basic/advanced/layer-2 numbering, IPv4/IPv6, strict rule
+  validation, wildcard rendering. Rule-level diff against `display acl` (undo + re-add only
+  changed rules), auto rule ids (step 5), named ACLs, apply/remove `traffic-filter` (S vs CE
+  syntax), global filters only on S and always DANGEROUS.
+- Gating: deny-any (classifier), removing the last permit and touching a VTY-bound ACL
+  (plan-level escalation) are DANGEROUS; ACLs denying the controller on VTY/management -> lockout.
+- Routing: probe-based capability registry per device (static/ospf/bgp/rip/vrrp/route-policy,
+  cached in `device.capabilities.routing`, 422 `unsupported_capability` otherwise); static and
+  default routes (idempotent, verify route active -> rollback), OSPF, BGP, RIP, VRRP,
+  route-policy/ip-prefix builders; pre/post routing-table snapshots with diff in the response;
+  OSPF/BGP neighbor views. Models acls/acl_rules/routes (migration 0004).
+- Confirmation gate unified (`ConfirmationService.require`): missing confirm -> 409, missing
+  reason -> 422, bad token -> 409.
+- Netmiko now uses `cmd_verify=True` and `fast_cli=True` (library defaults, pattern based).
+
 ## Open issues
 - Docker / compose cannot be executed on the build host (no Docker). See ASSUMPTIONS A1.
 
 ## Next step
-- Phase 7: ACL and routing (capability checks, pre/post snapshots, rollback).
+- Phase 8: job engine (Celery queues, beat, locks, cancellation), Redis pub/sub -> WebSocket with tickets, bulk jobs.

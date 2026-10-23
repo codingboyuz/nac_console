@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
+from app.domain.commands.categories import CommandCategory
 from app.network.ports import DeviceDriver
 
 Verifier = Callable[[DeviceDriver], bool]
@@ -25,6 +26,11 @@ class ConfigPlan:
     summary: str = ""
     netconf_xml: str | None = None
     notes: tuple[str, ...] = field(default_factory=tuple)
+    # Feature-level escalation (e.g. removing the last permit of an ACL) and facts the lockout
+    # guard needs (ACLs already bound to VTY / management interfaces).
+    min_category: CommandCategory = CommandCategory.SAFE
+    min_category_reason: str = ""
+    mgmt_acls: frozenset[str] = field(default_factory=frozenset)
 
     @property
     def noop(self) -> bool:

@@ -9,7 +9,7 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 
-from app.core.exceptions import AppError, Forbidden, ValidationFailed
+from app.core.exceptions import AppError, Forbidden
 from app.core.rbac import Permission, Role
 from app.domain.commands.categories import Classification, CommandCategory
 from app.domain.commands.classifier import CommandClassifier
@@ -114,9 +114,14 @@ class CommandService:
                 confirmation_expires_in=self._confirm.ttl if token else None,
             )
         if classification.is_dangerous:
-            if not req.confirm or not (req.reason and req.reason.strip()):
-                raise ValidationFailed("dangerous command requires confirm=true and a reason")
-            await self._confirm.consume(req.confirmation_token, principal, device.id, digest)
+            await self._confirm.require(
+                confirm=req.confirm,
+                token=req.confirmation_token,
+                reason=req.reason,
+                principal=principal,
+                target_id=device.id,
+                digest=digest,
+            )
         try:
             output: CommandOutput = await self._connector.run(
                 device, lambda drv: drv.run_show(command), principal

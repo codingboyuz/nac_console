@@ -12,7 +12,7 @@ import uuid
 
 from redis.asyncio import Redis
 
-from app.core.exceptions import ConfirmationRequired
+from app.core.exceptions import ConfirmationRequired, ValidationFailed
 from app.core.security import new_opaque_token, sha256_hex
 from app.domain.identity import Principal
 
@@ -35,6 +35,26 @@ class ConfirmationService:
         record = json.dumps({"user": str(principal.user_id), "target": str(target_id), "h": digest})
         await self._redis.set(_KEY.format(sha256_hex(token)), record, ex=self.ttl)
         return token
+
+    async def require(
+        self,
+        *,
+        confirm: bool,
+        token: str | None,
+        reason: str | None,
+        principal: Principal,
+        target_id: uuid.UUID | str,
+        digest: str,
+    ) -> None:
+        """Full DANGEROUS gate: confirm flag (409), audit reason (422), valid token (409)."""
+        if not confirm:
+            raise ConfirmationRequired(
+                "dangerous operation: run a dry-run to obtain a confirmation_token, then resend "
+                "with confirm=true, confirmation_token and reason"
+            )
+        if not (reason and reason.strip()):
+            raise ValidationFailed("dangerous operations require an audit reason")
+        await self.consume(token, principal, target_id, digest)
 
     async def consume(
         self, token: str | None, principal: Principal, target_id: uuid.UUID | str, digest: str

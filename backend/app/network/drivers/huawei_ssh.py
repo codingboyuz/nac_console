@@ -64,7 +64,7 @@ class HuaweiCliDriver(DriverBase):
             "banner_timeout": p.timeout,
             "timeout": p.timeout,
             "session_timeout": max(60, p.timeout * 2),
-            "fast_cli": False,
+            "fast_cli": True,  # Netmiko 4 default; pattern-based reads stay reliable
             "session_log": None,
             "allow_agent": False,
             "use_keys": False,
@@ -166,7 +166,7 @@ class HuaweiCliDriver(DriverBase):
                 lines,
                 exit_config_mode=not uses_commit,
                 read_timeout=self.params.timeout,
-                cmd_verify=False,
+                cmd_verify=True,  # wait for each echo + prompt (pattern based, no fixed sleeps)
             )
             error = detect_cli_error(output)
             if error:

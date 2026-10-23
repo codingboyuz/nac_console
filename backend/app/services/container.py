@@ -12,6 +12,7 @@ from app.core.database import Database
 from app.core.rate_limit import RateLimiter
 from app.core.security import TokenService
 from app.network.factory import DeviceConnectionFactory
+from app.services.acl_service import AclService
 from app.services.arp_service import ArpService
 from app.services.audit_service import AuditService
 from app.services.auth_service import AuthService
@@ -24,6 +25,7 @@ from app.services.credential_service import CredentialService
 from app.services.device_service import DeviceService
 from app.services.interface_service import InterfaceService
 from app.services.mac_service import MacService
+from app.services.routing_service import RoutingService
 from app.services.stp_service import StpService
 from app.services.user_service import UserService
 from app.services.vlan_service import VlanService
@@ -53,6 +55,8 @@ class ServiceContainer:
     macs: MacService
     arp: ArpService
     stp: StpService
+    acls: AclService
+    routing: RoutingService
 
     @classmethod
     def build(cls, settings: Settings, db: Database, redis: Redis) -> ServiceContainer:
@@ -90,6 +94,8 @@ class ServiceContainer:
             macs=MacService(db, devices, collection, changes),
             arp=ArpService(db, devices, collection, changes),
             stp=StpService(devices, collection, changes),
+            acls=AclService(db, devices, collection, changes),
+            routing=RoutingService(db, devices, collection, changes),
         )
 
     async def aclose(self) -> None:

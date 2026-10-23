@@ -97,8 +97,13 @@ class ChangeService:
         ctx = device_context(device)
         classification = self._classifier.classify_config(list(plan.lines), ctx)
         findings = self._guard.check(
-            list(plan.lines), LockoutContext(ctx, tuple(self._settings.controller_ips))
+            list(plan.lines),
+            LockoutContext(ctx, tuple(self._settings.controller_ips), plan.mgmt_acls),
         )
+        if plan.min_category.rank > classification.category.rank:
+            classification = Classification(
+                plan.min_category, plan.min_category_reason, classification.lines
+            )
         return classification, findings
 
     async def apply(
@@ -161,9 +166,14 @@ class ChangeService:
                 token,
             )
         if category is CommandCategory.DANGEROUS:
-            if not options.confirm or not (options.reason and options.reason.strip()):
-                raise ValidationFailed("dangerous change requires confirm=true and a reason")
-            await self._confirm.consume(options.confirmation_token, principal, device.id, digest)
+            await self._confirm.require(
+                confirm=options.confirm,
+                token=options.confirmation_token,
+                reason=options.reason,
+                principal=principal,
+                target_id=device.id,
+                digest=digest,
+            )
         try:
             output, status = await self._execute(principal, device, plan, options, bool(findings))
         except AppError as exc:

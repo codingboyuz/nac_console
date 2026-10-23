@@ -16,7 +16,11 @@ _DENY = re.compile(
     r"(?: source (?P<src>any|\S+ \S+))?(?: destination (?P<dst>any|\S+ \S+))?"
 )
 _VTY_ACL = re.compile(r"^acl (\S+) inbound$")
-_TRAFFIC_FILTER = re.compile(r"^traffic-filter (?:inbound|outbound) acl (?:name )?(\S+)")
+# S: "traffic-filter inbound acl 3000"; CE (VRP V8): "traffic-filter acl 3000 inbound".
+_TRAFFIC_FILTER = re.compile(
+    r"^traffic-filter (?:(?:inbound|outbound) acl (?:ipv6 )?(?:name )?(\S+)"
+    r"|acl (?:ipv6 )?(?:name )?(\S+) (?:inbound|outbound))"
+)
 _ALLOW_PASS_UNDO = re.compile(
     r"^undo port (?:trunk|hybrid) (?:allow-pass|tagged|untagged) vlan (.+)$"
 )
@@ -101,7 +105,7 @@ class LockoutGuard:
                 if _wildcard_covers(src, ctx.controller_ips or ("0.0.0.0",)):  # noqa: S104
                     denying_acls[acl] = raw
             if iface and dev.is_protected(iface) and (tf := _TRAFFIC_FILTER.match(text)):
-                applied_to_mgmt.add(tf.group(1))
+                applied_to_mgmt.add(tf.group(1) or tf.group(2))
         for name, line in denying_acls.items():
             if name in applied_to_mgmt:
                 findings.append(
