@@ -20,3 +20,6 @@ Each entry: the ambiguity, the choice made (safest reasonable option), and why.
 | A14 | NETCONF/SNMP and CLI | NETCONF and SNMP adapters raise `unsupported_capability` for CLI operations rather than emulate them. | Clear 422 reasons. |
 | A15 | Parser fixtures | Fixtures are hand-written to match documented VRP output, not captured from devices (see HARDWARE_VALIDATION). | No hardware available. |
 | A16 | SNMP entity indexes | Huawei fan/power tables use multi-part indexes (`0.1`); they are kept as strings. | Real MIB layout. |
+| A17 | Unexpected DHCP server | Detected as DHCP-snooping `trusted` on ports that are not declared uplinks (config audit), plus binding/ARP mismatches. Packet-level rogue server detection needs syslog/trap ingestion. | `display` output has no per-server data. |
+| A18 | Interface names in URLs | Routes use `{interface:path}`; clients may URL-encode `/` as `%2F`. | Huawei names contain slashes. |
+| A19 | Rollback on verification failure | Builders emit a best-effort inverse plan; for CE the candidate is never committed when the push fails. | Device-side undo for S-series. |

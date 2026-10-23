@@ -26,7 +26,6 @@ from app.repositories.uow import UnitOfWork
 from app.services.connection_service import DeviceConnector
 
 
-
 def is_edge_port(device: Device, interface: str | None) -> bool:
     """Access-side port: not an uplink, LAG, management or routed (Vlanif) interface."""
     if not interface:

@@ -12,7 +12,7 @@ Re-read at the start of every session.
 | 3 | Device inventory and credential vault | done |
 | 4 | Driver layer: SSH, Telnet, classifier, parsers | done |
 | 5 | NETCONF and SNMP | done |
-| 6 | L2 features | pending |
+| 6 | L2 features | done |
 | 7 | ACL and routing | pending |
 | 8 | Job engine, Celery, WebSocket | pending |
 | 9 | Backups and config management | pending |
@@ -83,8 +83,25 @@ Re-read at the start of every session.
 - E2E: mock NETCONF server (asyncssh subsystem), UDP SNMPv2c simulator.
 - Full suite at end of phase 5: 500 passed (embedded PostgreSQL).
 
+### Phase 6 - L2 features
+- `ChangeService`: classify -> lockout guard (ADMIN override only with rollback timer) ->
+  category RBAC -> dry-run/confirmation token -> Redis device lock -> pre/post-change hooks ->
+  push -> post-verify -> automatic rollback -> save -> audit. Rollback timers: CE `commit
+  trial`, S/AR `schedule reboot delay` + disarm before `save`.
+- Typed idempotent builders (`app/network/builders/cli_l2.py`) driven by current state
+  (`display vlan`, `display current-configuration interface X`): VLAN create/delete/rename, port
+  mode access/trunk/hybrid (resets VLAN config before link-type changes), trunk allowed list,
+  admin state, description, speed/duplex, static/blackhole MAC, STP mode/priority/edge, DHCP
+  snooping. NETCONF VLAN path when the device advertises the huawei-vlan module.
+- State tables: interfaces, vlans, mac_entries (+ mac_moves history), arp_entries, dhcp_bindings
+  (migration 0003). MAC search/locate (edge ports first), ARP IP<->MAC, anomaly report
+  (duplicate IP, MAC flapping, many-IPs-per-MAC, binding/ARP mismatch, duplicate leases,
+  DHCP-trusted non-uplink ports, unknown MACs).
+- Bulk multi-device execution is delivered with the job engine (phase 8).
+- Full suite: 519 passed.
+
 ## Open issues
 - Docker / compose cannot be executed on the build host (no Docker). See ASSUMPTIONS A1.
 
 ## Next step
-- Phase 6: L2 features (VLAN, interfaces, MAC, ARP, DHCP snooping, STP) with guarded change executor.
+- Phase 7: ACL and routing (capability checks, pre/post snapshots, rollback).
