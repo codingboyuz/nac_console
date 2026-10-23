@@ -13,6 +13,8 @@ from app.network.builders.cli_routing import PrefixEntry, StaticRoute
 from app.schemas.common import ApiModel
 from app.schemas.l2 import ChangeRequest, ChangeResponse
 
+# OSPF backbone area id (dotted notation), not an address to bind.
+BACKBONE_AREA = "0.0.0.0"  # noqa: S104  # nosec B104
 _NAME = r"^[A-Za-z][A-Za-z0-9_-]{0,31}$"
 
 
@@ -147,7 +149,7 @@ class StaticRouteRequest(ChangeRequest):
 class OspfRequest(ChangeRequest):
     process: int = Field(default=1, ge=1, le=65535)
     router_id: IPvAnyAddress | None = None
-    area: str = Field(default="0.0.0.0", pattern=r"^(\d+|\d+\.\d+\.\d+\.\d+)$")  # noqa: S104
+    area: str = Field(default=BACKBONE_AREA, pattern=r"^(\d+|\d+\.\d+\.\d+\.\d+)$")
     networks: list[str] = Field(min_length=1, max_length=256)
     silent_interfaces: list[str] = Field(default_factory=list)
 

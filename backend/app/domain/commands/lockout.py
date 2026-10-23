@@ -9,6 +9,9 @@ from dataclasses import dataclass, field
 from app.domain.commands.classifier import DeviceContext, canonical_interface, normalize_command
 from app.domain.vlans import parse_vlan_list
 
+# Sentinel address used when no controller IP is configured (never bound).
+ANY_ADDRESS = "0.0.0.0"  # noqa: S104  # nosec B104
+
 _IFACE = re.compile(r"^interface (\S+)$")
 _ACL_VIEW = re.compile(r"^acl (?:number |name )?(\S+)")
 _DENY = re.compile(
@@ -102,7 +105,7 @@ class LockoutGuard:
             if acl and (deny := _DENY.match(text)):
                 src = deny.group("src") or "any"
                 # No controller configured: any deny rule counts (sentinel address).
-                if _wildcard_covers(src, ctx.controller_ips or ("0.0.0.0",)):  # noqa: S104
+                if _wildcard_covers(src, ctx.controller_ips or (ANY_ADDRESS,)):
                     denying_acls[acl] = raw
             if iface and dev.is_protected(iface) and (tf := _TRAFFIC_FILTER.match(text)):
                 applied_to_mgmt.add(tf.group(1) or tf.group(2))

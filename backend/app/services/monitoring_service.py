@@ -241,7 +241,7 @@ class MonitoringService:
         )
         await conn.execute(
             text(
-                f"WITH moved AS (DELETE FROM metric_samples_default WHERE ts >= :a AND ts < :b "  # noqa: S608
+                f"WITH moved AS (DELETE FROM metric_samples_default WHERE ts >= :a AND ts < :b "  # noqa: S608  # nosec B608
                 f"RETURNING *) INSERT INTO {name} SELECT * FROM moved"
             ),
             bounds,

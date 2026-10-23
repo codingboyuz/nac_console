@@ -103,3 +103,4 @@ class WsAlert(BaseModel):
     message: str
     device_id: str | None = None
     timestamp: str
+    suppressed: bool = False

@@ -18,7 +18,7 @@ Re-read at the start of every session.
 | 9 | Backups and config management | done |
 | 10 | Monitoring, alerts, discovery | done |
 | 11 | NAC and RADIUS | done |
-| 12 | CLI, hardening, docs, delivery | pending |
+| 12 | CLI, hardening, docs, delivery | done |
 
 ## Log
 
@@ -197,9 +197,30 @@ Re-read at the start of every session.
   classification reasons quoted raw lines (could expose RADIUS keys) - now redacted at source.
 - Full suite: 621 passed.
 
+### Phase 12 - CLI, hardening, docs, delivery
+- Typer CLI (`python -m app.cli`): user bootstrap (ADMIN / service accounts), device
+  list|test|command|backup (DANGEROUS needs `--dry-run` then `--confirm TOKEN --reason`),
+  vlan list|create, interface list, mac search, nac endpoints|endpoint, job list|show, openapi
+  export, vault rotate-keys, db maintain, radius serve (dev only). Runs as `CLI_USERNAME`
+  through the service layer; `--json` output; logs on stderr.
+- Security pass: bandit 0 issues (runtime asserts replaced by explicit checks; justified
+  `nosec` only for sentinels/jitter/generated partition names), pip-audit no known
+  vulnerabilities.
+- Coverage (greenlet-aware measurement): services 88 %, network 90 %, parsers 98 %, NAC 88 %,
+  overall 91 %. CI enforces >= 85 % per area.
+- Docs: README, ARCHITECTURE (Mermaid), API (curl + WebSocket + JSON Schemas + RADIUS
+  contract), SECURITY (threat model, generated RBAC matrix kept in sync by a test),
+  DEVELOPMENT, DEPLOYMENT (incl. Huawei prerequisites per family, VRP-VERSION-DEPENDENT),
+  HARDWARE_VALIDATION, ADR 0001.
+- CI (`.github/workflows/ci.yml`): ruff, black, mypy, alembic up/down/check on PostgreSQL,
+  pytest + coverage gates, bandit, pip-audit, OpenAPI artifact, Docker build, Trivy, compose
+  config validation. `openapi.json` exported (OpenAPI 3.1.0, 106 paths).
+- Final local run: 633 passed (embedded PostgreSQL 16), ruff/black/mypy clean.
+
 ## Open issues
 - Docker / compose cannot be executed on the build host (no Docker). See ASSUMPTIONS A1.
 - A real Celery worker against a real Redis broker was not run on the build host (no Redis); the task runs eagerly in tests.
 
 ## Next step
-- Phase 12: Typer CLI, security review (bandit, pip-audit), docs, CI workflow, OpenAPI export, HARDWARE_VALIDATION.
+- All phases complete. Remaining work = items in HARDWARE_VALIDATION.md and running the Docker
+  stack / CI on infrastructure with Docker.

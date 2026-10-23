@@ -1,0 +1,100 @@
+name: backend-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  quality:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: nac_test
+          POSTGRES_USER: nac
+          POSTGRES_PASSWORD: ci-only-password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U nac -d nac_test" --health-interval 5s --health-timeout 3s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgresql+asyncpg://nac:ci-only-password@localhost:5432/nac_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.5"
+          enable-cache: true
+      - name: Install
+        run: uv sync --all-groups --frozen
+      - name: Ruff
+        run: uv run ruff check .
+      - name: Black
+        run: uv run black --check .
+      - name: Mypy (strict)
+        run: uv run mypy app
+      - name: Alembic upgrade / downgrade / check (clean database)
+        env:
+          DATABASE_URL: postgresql+asyncpg://nac:ci-only-password@localhost:5432/nac_test
+        run: |
+          uv run alembic upgrade head
+          uv run alembic downgrade base
+          uv run alembic upgrade head
+          uv run alembic check
+          uv run alembic downgrade base
+      - name: Tests with coverage
+        run: uv run pytest --cov=app --cov-report=xml --cov-report=term
+      - name: Coverage gates (services, network, parsers, NAC >= 85%)
+        run: |
+          uv run coverage report --include="app/services/*" --fail-under=85
+          uv run coverage report --include="app/network/*" --fail-under=85
+          uv run coverage report --include="app/network/parsers/*" --fail-under=85
+          uv run coverage report --include="app/domain/nac/*,app/nac/*,app/services/nac*,app/services/coa*,app/services/radius*" --fail-under=85
+      - name: Bandit
+        run: uv run bandit -c pyproject.toml -r app -q
+      - name: pip-audit
+        run: uv run pip-audit
+      - name: Export OpenAPI
+        run: uv run python -m app.cli openapi export --output openapi.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openapi
+          path: backend/openapi.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: backend/coverage.xml
+
+  image:
+    runs-on: ubuntu-24.04
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+      - name: Docker build
+        run: docker build -t huawei-nac-backend:ci .
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: huawei-nac-backend:ci
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          ignore-unfixed: true
+      - name: Compose config validation
+        env:
+          POSTGRES_PASSWORD: ci-only-password
+          INTERNAL_API_TOKEN: ci-only-token-0123456789abcdef0123456789abcdef
+        run: |
+          cp .env.example .env
+          docker compose config --quiet

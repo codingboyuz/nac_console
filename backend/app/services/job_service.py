@@ -229,7 +229,8 @@ class JobService:
         await self._redis.set(CANCEL_KEY.format(job.id), "1", ex=86400)
         async with UnitOfWork(self._db) as uow:
             row = await uow.session.get(Job, job.id)
-            assert row is not None  # noqa: S101
+            if row is None:
+                raise RuntimeError("invariant violated: row missing")
             row.cancel_requested = True
             if row.status is JobStatus.PENDING:
                 row.status = JobStatus.CANCELLED

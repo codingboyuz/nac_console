@@ -86,7 +86,8 @@ class HuaweiCliDriver(DriverBase):
 
     def _write_known_hosts(self) -> str:
         key = self.params.pinned_host_key
-        assert key is not None  # noqa: S101 - guarded by caller
+        if key is None:
+            raise RuntimeError("invariant violated: key missing")
         host = (
             self.params.host
             if self.params.port == 22
@@ -115,7 +116,8 @@ class HuaweiCliDriver(DriverBase):
 
     def _enter_super(self) -> None:
         """Raise the privilege level with 'super' (VRP-VERSION-DEPENDENT prompt text)."""
-        assert self.params.super_password is not None  # noqa: S101
+        if self.params.super_password is None:
+            raise RuntimeError("invariant violated: self.params.super_password missing")
         out = self._conn.send_command_timing("super", strip_prompt=False, strip_command=False)
         if "assword" in out:
             out = self._conn.send_command_timing(

@@ -84,7 +84,8 @@ class JobRunner:
             return None
         async with UnitOfWork(self._s.db) as uow:
             job = await uow.session.get(Job, job_id)
-        assert job is not None  # noqa: S101 - claimed above
+        if job is None:
+            raise RuntimeError("invariant violated: job missing")
         await self._publish(job.id, type="status", status=JobStatus.RUNNING.value, progress=0)
         try:
             status = await self._execute(job)

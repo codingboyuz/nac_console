@@ -94,7 +94,8 @@ class HuaweiSnmpDriver(DriverBase):
 
     def _c(self) -> SnmpClient:
         self.connect()
-        assert self._client is not None  # noqa: S101
+        if self._client is None:
+            raise RuntimeError("invariant violated: self._client missing")
         return self._client
 
     def run_show(self, command: str) -> CommandOutput:

@@ -48,7 +48,8 @@ def problem(
 
 
 async def _app_error(request: Request, exc: Exception) -> JSONResponse:
-    assert isinstance(exc, AppError)  # noqa: S101 - registered for AppError only
+    if not isinstance(exc, AppError):
+        raise exc
     headers = {"Retry-After": str(exc.retry_after)} if isinstance(exc, RateLimited) else None
     if exc.status_code >= 500:
         log.warning("app_error", code=exc.code, message=exc.message)
@@ -64,7 +65,8 @@ async def _app_error(request: Request, exc: Exception) -> JSONResponse:
 
 
 async def _validation_error(request: Request, exc: Exception) -> JSONResponse:
-    assert isinstance(exc, RequestValidationError)  # noqa: S101
+    if not isinstance(exc, RequestValidationError):
+        raise exc
     errors = [
         {"loc": list(e.get("loc", ())), "msg": e.get("msg"), "type": e.get("type")}
         for e in exc.errors()
@@ -80,7 +82,8 @@ async def _validation_error(request: Request, exc: Exception) -> JSONResponse:
 
 
 async def _http_error(request: Request, exc: Exception) -> JSONResponse:
-    assert isinstance(exc, StarletteHTTPException)  # noqa: S101
+    if not isinstance(exc, StarletteHTTPException):
+        raise exc
     return problem(
         request,
         status=exc.status_code,

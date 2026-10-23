@@ -70,7 +70,8 @@ class HuaweiNetconfDriver(DriverBase):
         self.registry = ModelRegistry.from_capabilities(list(self._mgr.server_capabilities))
 
     def _write_key(self) -> str:
-        assert self.params.private_key is not None  # noqa: S101
+        if self.params.private_key is None:
+            raise RuntimeError("invariant violated: self.params.private_key missing")
         fd, path = tempfile.mkstemp(prefix="nac-nc-", suffix=".key")
         with os.fdopen(fd, "w", encoding="ascii") as fh:
             fh.write(self.params.private_key.get_secret_value())

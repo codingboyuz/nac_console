@@ -289,7 +289,8 @@ class AlertService:
         await self.resolve_key(alert.dedupe_key)
         async with UnitOfWork(self._db) as uow:
             refreshed = await uow.session.get(Alert, alert_id)
-            assert refreshed is not None  # noqa: S101
+            if refreshed is None:
+                raise RuntimeError("invariant violated: refreshed missing")
             return refreshed
 
     async def search(self, query: ListQuery) -> Page[Alert]:

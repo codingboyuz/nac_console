@@ -11,10 +11,13 @@ from fastapi import Request
 
 from app.core.exceptions import Forbidden, Unauthorized
 
+# Sentinel for "no peer address"; never used to bind a socket.
+UNKNOWN_PEER = "0.0.0.0"  # noqa: S104  # nosec B104
+
 
 def client_ip(request: Request) -> str:
     """Peer address as seen by the ASGI server (proxies must be configured explicitly)."""
-    return request.client.host if request.client else "0.0.0.0"  # noqa: S104 - sentinel only
+    return request.client.host if request.client else UNKNOWN_PEER
 
 
 def ip_in_networks(ip: str, networks: list[str]) -> bool:

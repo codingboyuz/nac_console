@@ -48,7 +48,8 @@ class AlertDeliverer:
                 return delivery.status if delivery else "DEAD"
             alert = await uow.session.get(Alert, delivery.alert_id)
             destinations = await uow.session.get(Setting, "alert_channels")
-            assert alert is not None  # noqa: S101 - FK guarantees the alert exists
+            if alert is None:
+                raise RuntimeError("invariant violated: alert missing")
             channel = self.channels.get(delivery.channel)
             destination = (destinations.value if destinations else {}).get(delivery.channel, {})
             delivery.attempts += 1

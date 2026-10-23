@@ -31,7 +31,7 @@ class RedactingFilter(logging.Filter):
         return True
 
 
-def configure_logging(level: str = "INFO", json_logs: bool = True) -> None:
+def configure_logging(level: str = "INFO", json_logs: bool = True, *, stream: Any = None) -> None:
     """Configure structlog + stdlib logging once per process."""
     shared: list[Any] = [
         structlog.contextvars.merge_contextvars,
@@ -55,7 +55,7 @@ def configure_logging(level: str = "INFO", json_logs: bool = True) -> None:
         foreign_pre_chain=shared,
         processors=[structlog.stdlib.ProcessorFormatter.remove_processors_meta, renderer],
     )
-    handler = logging.StreamHandler(sys.stdout)
+    handler = logging.StreamHandler(stream or sys.stdout)
     handler.setFormatter(formatter)
     handler.addFilter(RedactingFilter())
     root = logging.getLogger()

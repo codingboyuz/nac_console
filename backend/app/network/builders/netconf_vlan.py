@@ -8,7 +8,7 @@ selected through ``LEGACY_NS`` when the ModelRegistry reports that namespace.
 
 from __future__ import annotations
 
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ET  # nosec B405
 
 from app.domain.vlans import validate_vlan_id
 

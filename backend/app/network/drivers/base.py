@@ -35,7 +35,9 @@ def retry_connect[T](
             error = map_exception(exc, params.host)
             if not isinstance(error, _RETRYABLE) or number >= retries:
                 raise error from exc
-            delay = min(max_delay, base_delay * (2**number)) * (0.5 + random.random())  # noqa: S311
+            # Jitter only (not security relevant).
+            jitter = 0.5 + random.random()  # noqa: S311  # nosec B311
+            delay = min(max_delay, base_delay * (2**number)) * jitter
             log.warning(
                 "device_connect_retry",
                 device_id=params.device_id,

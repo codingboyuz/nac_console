@@ -239,7 +239,8 @@ class DiscoveryService:
             error = type(exc).__name__
         async with UnitOfWork(self._db) as uow:
             row = await uow.session.get(DiscoveryRun, run_id)
-            assert row is not None  # noqa: S101
+            if row is None:
+                raise RuntimeError("invariant violated: row missing")
             row.status, row.completed_at = ("FAILED" if error else "SUCCESS"), datetime.now(UTC)
             row.hosts_scanned, row.hosts_found, row.error = len(hosts), found, error
             await uow.commit()
@@ -272,7 +273,8 @@ class DiscoveryService:
         device = await self._devices.create(principal, data)
         async with UnitOfWork(self._db) as uow:
             proposal = await uow.session.get(DiscoveredDevice, discovered_id)
-            assert proposal is not None  # noqa: S101
+            if proposal is None:
+                raise RuntimeError("invariant violated: proposal missing")
             proposal.status, proposal.adopted_device_id = "ADOPTED", device.id
             await uow.commit()
         await self._audit.record(
