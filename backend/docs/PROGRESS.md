@@ -9,7 +9,7 @@ Re-read at the start of every session.
 | 0 | Recon and scaffolding | done |
 | 1 | Core platform | done |
 | 2 | Auth, RBAC, audit | done |
-| 3 | Device inventory and credential vault | pending |
+| 3 | Device inventory and credential vault | done |
 | 4 | Driver layer: SSH, Telnet, classifier, parsers | pending |
 | 5 | NETCONF and SNMP | pending |
 | 6 | L2 features | pending |
@@ -45,8 +45,20 @@ Re-read at the start of every session.
   per-request context marker).
 - Migration 0001; alembic upgrade/downgrade/check round-trip test on a fresh PostgreSQL database.
 
+### Phase 3 - Device inventory and credential vault
+- `CredentialVault`: AES-256-GCM, envelope `v1:<kid>:<b64>`, AAD bound to the credential row,
+  multi-key ring with active key + `rotate_keys()`.
+- Models: Credential (cli / snmp_v2c / snmp_v3), DeviceGroup, Device (INET unique mgmt_ip, family,
+  protocol, capabilities/tags JSONB, lockout-guard fields: mgmt_interface, mgmt_vlan, uplinks),
+  SshHostKey (TOFU store with PENDING/TRUSTED/REJECTED + approve endpoint).
+- Device CRUD (POST/GET/PUT/PATCH/DELETE) with whitelisted filter/sort, search, tags, group
+  scoping (out-of-scope = 404), Telnet gating (flag + INSECURE_PROTOCOL permission) and
+  `security_warning` in responses. Interface names normalized in `app/domain/interfaces.py`.
+- Tests: secrets never in API responses, DB plaintext or logs (even explicit log attempts);
+  constant query count for device listing (N+1 guard); migration 0002 round-trip.
+
 ## Open issues
 - Docker / compose cannot be executed on the build host (no Docker). See ASSUMPTIONS A1.
 
 ## Next step
-- Phase 3: device inventory, groups, credential vault (AES-256-GCM, key rotation).
+- Phase 4: driver port, factory/pooling/locks, Netmiko SSH/Telnet, classifier, parsers.

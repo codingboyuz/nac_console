@@ -82,6 +82,7 @@ class TokenService:
             "role": role.value,
             "jti": claims.jti,
             "iat": int(now.timestamp()),
+            "iat_ms": int(now.timestamp() * 1000),
             "nbf": int(now.timestamp()),
             "exp": int(claims.expires_at.timestamp()),
             "iss": self._issuer,
@@ -108,7 +109,9 @@ class TokenService:
                 user_id=uuid.UUID(payload["sub"]),
                 role=Role(payload["role"]),
                 jti=str(payload["jti"]),
-                issued_at=datetime.fromtimestamp(payload["iat"], UTC),
+                issued_at=datetime.fromtimestamp(
+                    int(payload.get("iat_ms", payload["iat"] * 1000)) / 1000, UTC
+                ),
                 expires_at=datetime.fromtimestamp(payload["exp"], UTC),
             )
         except (KeyError, ValueError) as exc:

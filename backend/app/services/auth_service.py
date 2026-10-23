@@ -162,7 +162,7 @@ class AuthService:
         now = datetime.now(UTC)
         await self._redis.set(
             _VALID_AFTER.format(user_id),
-            str(int(now.timestamp())),
+            str(int(now.timestamp() * 1000)),
             ex=self._settings.access_token_ttl_seconds + 5,
         )
         async with UnitOfWork(self._db) as uow:
@@ -175,7 +175,7 @@ class AuthService:
         if await self._redis.exists(_REVOKED_JTI.format(claims.jti)):
             raise Unauthorized("token revoked")
         valid_after = await self._redis.get(_VALID_AFTER.format(claims.user_id))
-        if valid_after and int(claims.issued_at.timestamp()) <= int(valid_after):
+        if valid_after and int(claims.issued_at.timestamp() * 1000) < int(valid_after):
             raise Unauthorized("token revoked")
         async with UnitOfWork(self._db) as uow:
             user = await uow.repo(UserRepository).get(claims.user_id)

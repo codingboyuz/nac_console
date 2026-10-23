@@ -45,3 +45,13 @@ ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
     code: {"model": ProblemDetail, "content": {"application/problem+json": {}}}
     for code in (400, 401, 403, 404, 409, 422, 423, 429)
 }
+
+
+def page_of[M: BaseModel](page: Any, model: type[M]) -> PageResponse[M]:
+    """Convert a repository Page of ORM rows into a typed response envelope."""
+    return PageResponse[M](
+        items=[model.model_validate(item) for item in page.items],
+        total=page.total,
+        limit=page.limit,
+        offset=page.offset,
+    )
