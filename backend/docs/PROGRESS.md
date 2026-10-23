@@ -15,7 +15,7 @@ Re-read at the start of every session.
 | 6 | L2 features | done |
 | 7 | ACL and routing | done |
 | 8 | Job engine, Celery, WebSocket | done |
-| 9 | Backups and config management | pending |
+| 9 | Backups and config management | done |
 | 10 | Monitoring, alerts, discovery | pending |
 | 11 | NAC and RADIUS | pending |
 | 12 | CLI, hardening, docs, delivery | pending |
@@ -136,9 +136,24 @@ Re-read at the start of every session.
 - Tests: in-process FakeDriver over the CLI emulator; Celery task eager run with a real worker
   runtime; schedule tick; WebSocket via httpx-ws. Full suite: 551 passed.
 
+### Phase 9 - Backups and config management
+- `backups` table (migration 0006): trigger manual/scheduled/pre-change/post-change, source
+  current/saved, SHA-256 over normalized text (volatile `!Last configuration...` headers
+  ignored), dedup (unchanged -> previous version), masked `content` + exact original encrypted
+  with the vault (AAD `backup:<id>`), family/VRP version captured.
+- Mandatory pre-change backup hook on every ChangeService apply (failure aborts the change),
+  post-change backup; out-of-band changes detected by scheduled/manual backups emit
+  `configuration_change`.
+- Unified diff between any two backups, known-good baseline, drift report vs running config.
+- Guarded restore: ADMIN/NETWORK_ADMIN + backups:restore, dry-run preview (lines + diff, never
+  secrets), DANGEROUS token + reason, family/VRP-version match, device-side rollback timer,
+  audit. Restore = best-effort merge plan (`app/domain/config_text.restore_plan`, VLAN batch
+  as set difference, removals last).
+- `backup.run` job type + `POST /devices/{id}/backup` (202). Full suite: 563 passed.
+
 ## Open issues
 - Docker / compose cannot be executed on the build host (no Docker). See ASSUMPTIONS A1.
 - A real Celery worker against a real Redis broker was not run on the build host (no Redis); the task runs eagerly in tests.
 
 ## Next step
-- Phase 9: backups (hash dedup, secret stripping, diff, drift, scheduled, guarded restore).
+- Phase 10: monitoring (SNMP metrics, partitioned storage, retention), alert engine + channels, safe discovery.

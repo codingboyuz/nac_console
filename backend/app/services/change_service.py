@@ -17,6 +17,7 @@ from redis.asyncio import Redis
 from app.core.config import Settings
 from app.core.exceptions import AppError, DeviceError, Forbidden, LockoutRisk, ValidationFailed
 from app.core.rbac import Role
+from app.core.redaction import redact_text
 from app.domain.commands.categories import Classification, CommandCategory
 from app.domain.commands.classifier import CommandClassifier, DeviceContext
 from app.domain.commands.lockout import LockoutContext, LockoutFinding, LockoutGuard
@@ -129,7 +130,9 @@ class ChangeService:
             )
         classification, findings = self.assess(device, plan)
         category = classification.category
-        lines = plan.preview()
+        raw_lines = plan.preview()
+        # Restores may carry cipher strings: never echo them in responses or audit rows.
+        lines = [redact_text(line) for line in raw_lines]
 
         async def audit(success: bool, summary: str) -> None:
             await self._audit.record(
@@ -152,7 +155,7 @@ class ChangeService:
         except (Forbidden, LockoutRisk) as exc:
             await audit(False, f"denied: {exc.message}")
             raise
-        digest = payload_hash("change", device.id, *lines)
+        digest = payload_hash("change", device.id, *raw_lines)
         if options.dry_run:
             token = None
             if category is CommandCategory.DANGEROUS:
@@ -221,7 +224,7 @@ class ChangeService:
         options: ChangeOptions,
         risky: bool,
     ) -> tuple[str, str]:
-        timer = options.rollback_minutes if risky else None
+        timer = options.rollback_minutes if (risky or plan.wants_rollback_timer) else None
         async with device_config_lock(
             self._redis, str(device.id), ttl=self._settings.device_lock_ttl_seconds
         ):

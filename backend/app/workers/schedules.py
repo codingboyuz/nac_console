@@ -37,7 +37,12 @@ class ScheduleEntry(BaseModel):
 
 
 DEFAULT_SCHEDULES: list[ScheduleEntry] = [
-    ScheduleEntry(name="backup-daily", job_type="backup.run", interval_seconds=86400),
+    ScheduleEntry(
+        name="backup-daily",
+        job_type="backup.run",
+        interval_seconds=86400,
+        params={"trigger": "scheduled"},
+    ),
     ScheduleEntry(
         name="cpu-30s", job_type="poll.metrics", interval_seconds=30, params={"scope": "cpu"}
     ),

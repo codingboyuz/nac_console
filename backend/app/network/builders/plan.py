@@ -31,6 +31,9 @@ class ConfigPlan:
     min_category: CommandCategory = CommandCategory.SAFE
     min_category_reason: str = ""
     mgmt_acls: frozenset[str] = field(default_factory=frozenset)
+    # Arm the device-side rollback timer (CE commit trial / S schedule reboot) even without
+    # lockout findings, e.g. for restores.
+    wants_rollback_timer: bool = False
 
     @property
     def noop(self) -> bool:

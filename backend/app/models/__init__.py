@@ -2,6 +2,7 @@
 
 from app.models.acl import Acl, AclRule, Route
 from app.models.audit import AuditLog
+from app.models.backup import Backup
 from app.models.base import Base
 from app.models.device import Credential, Device, DeviceGroup, SshHostKey
 from app.models.job import Job, JobDeviceResult, Setting
@@ -13,6 +14,7 @@ __all__ = [
     "AclRule",
     "ArpEntry",
     "AuditLog",
+    "Backup",
     "Base",
     "Credential",
     "Device",

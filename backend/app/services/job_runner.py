@@ -130,7 +130,7 @@ class JobRunner:
                     output = await job_type.handler(jc, device)
                     outcome, error = DeviceResultStatus.SUCCESS, None
                     state["dangerous"] |= output.get("category") == "DANGEROUS"
-                except (AppError, PermissionError, ValueError) as exc:
+                except (AppError, PermissionError, ValueError, RuntimeError) as exc:
                     code = getattr(exc, "code", type(exc).__name__)
                     outcome, error, output = DeviceResultStatus.FAILED, f"{code}: {exc}"[:2000], {}
                 except Exception as exc:

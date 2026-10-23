@@ -35,6 +35,7 @@ class HuaweiCliEmulator:
     interfaces: dict[str, list[str]] = field(default_factory=dict)
     acls: dict[str, dict[int, str]] = field(default_factory=dict)
     vty_acl: str | None = None
+    extra_config: list[str] = field(default_factory=list)
     saved: bool = False
     commits: int = 0
     reboot_scheduled: bool = False
@@ -111,7 +112,10 @@ class HuaweiCliEmulator:
         return CRLF + "Info: Succeeded in setting the schedule."
 
     def render_running(self) -> str:
-        lines = ["#", f"sysname {self.hostname}"]
+        lines = ["!Software Version V200R019C10SPC500", "#", f"sysname {self.hostname}"]
+        if self.vlans:
+            lines += ["#", "vlan batch " + " ".join(str(v) for v in sorted(self.vlans))]
+        lines += self.extra_config
         for name, body in sorted(self.interfaces.items()):
             lines += ["#", f"interface {name}", *[f" {b}" for b in body]]
         for ident, rules in sorted(self.acls.items()):

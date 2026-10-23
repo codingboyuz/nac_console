@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -71,6 +71,11 @@ class AdminStateParams(_Params):
 class DescriptionParams(_Params):
     interface: str
     description: str | None = Field(default=None, max_length=242)
+
+
+class BackupParams(_Params):
+    trigger: Literal["manual", "scheduled"] = "manual"
+    include_saved: bool = False
 
 
 class ShowParams(_Params):
@@ -156,6 +161,23 @@ async def _test_connection(jc: JobContext, device: Device) -> dict[str, Any]:
     return {"family": facts.family.value, "model": facts.model, "vrp_version": facts.vrp_version}
 
 
+async def _backup(jc: JobContext, device: Device) -> dict[str, Any]:
+    from app.models.backup import BackupSource, BackupTrigger
+
+    p = BackupParams.model_validate(jc.params)
+    trigger = BackupTrigger(p.trigger)
+    row, created = await jc.services.backups.backup(jc.principal, device, trigger)
+    if row.status != "SUCCESS":
+        raise RuntimeError(row.error or "backup failed")
+    out: dict[str, Any] = {"backup_id": str(row.id), "created": created, "sha256": row.sha256}
+    if p.include_saved:
+        saved, _ = await jc.services.backups.backup(
+            jc.principal, device, trigger, source=BackupSource.SAVED
+        )
+        out["saved_backup_id"] = str(saved.id)
+    return out
+
+
 async def _show(jc: JobContext, device: Device) -> dict[str, Any]:
     from app.services.command_service import CommandRequest
 
@@ -200,6 +222,7 @@ REGISTRY: dict[str, JobType] = {
         JobType("collect.vlans", Permission.DEVICE_SHOW, P, NoParams, _collect_vlans),
         JobType("device.test_connection", Permission.DEVICE_TEST, D, NoParams, _test_connection),
         JobType("device.show", Permission.DEVICE_SHOW, D, ShowParams, _show),
+        JobType("backup.run", Permission.BACKUPS_CREATE, D, BackupParams, _backup),
     )
 }
 

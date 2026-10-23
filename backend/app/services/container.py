@@ -18,6 +18,7 @@ from app.services.acl_service import AclService
 from app.services.arp_service import ArpService
 from app.services.audit_service import AuditService
 from app.services.auth_service import AuthService
+from app.services.backup_service import BackupService
 from app.services.change_service import ChangeService
 from app.services.collection_service import CollectionService
 from app.services.command_service import CommandService
@@ -63,6 +64,7 @@ class ServiceContainer:
     routing: RoutingService
     events: EventBus
     jobs: JobService
+    backups: BackupService
     inline_dispatcher: InlineDispatcher | None = None
 
     @classmethod
@@ -93,6 +95,10 @@ class ServiceContainer:
             )
 
         changes = ChangeService(settings, redis, devices, connector, confirmations, audit)
+        backups = BackupService(db, vault, devices, collection, changes, events, audit)
+        # Mandatory pre-change backup (a failure aborts the change), post-change backup + event.
+        changes.pre_change_hooks.append(backups.pre_change_hook)
+        changes.post_change_hooks.append(backups.post_change_hook)
         changes.post_change_hooks.append(config_changed)
         container = cls(
             settings=settings,
@@ -121,6 +127,7 @@ class ServiceContainer:
             routing=RoutingService(db, devices, collection, changes),
             events=events,
             jobs=jobs,
+            backups=backups,
         )
         if (dispatch or settings.job_dispatch) == "inline":
             container.inline_dispatcher = InlineDispatcher(lambda: JobRunner(container))

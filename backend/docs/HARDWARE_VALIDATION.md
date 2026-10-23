@@ -23,3 +23,8 @@ on a real, authorized lab device before production use. Note the device model an
 - [ ] display dhcp snooping user-bind all, cpu-usage, memory-usage
 - [ ] display transceiver verbose, display lldp neighbor brief
 - [ ] Error message wording: `Error: Unrecognized command`, `Wrong parameter`, `Incomplete command`, CE commit failures.
+
+## Backups / restore
+- [ ] `display saved-configuration` availability and output on S and CE.
+- [ ] Restore merge plan on a lab device (VLAN batch diff, interface body undo, static routes).
+- [ ] `schedule reboot delay` + `undo schedule reboot` prompts on S-series; `commit trial` on CE.
