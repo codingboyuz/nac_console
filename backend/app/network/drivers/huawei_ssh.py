@@ -213,6 +213,39 @@ class HuaweiCliDriver(DriverBase):
         raise_on_cli_error("commit", out)
         return out
 
+    def save(self) -> str:
+        """Persist running config (S/AR 'save'; CE configuration is persisted by commit)."""
+        if self.params.family.uses_commit:
+            return ""
+        out: str = self._require().save_config()
+        raise_on_cli_error("save", out)
+        return out
+
+    def arm_rollback_timer(self, minutes: int) -> str:
+        """S/AR safety net: reboot to the saved config unless disarmed (VRP-VERSION-DEPENDENT).
+
+        Callers must NOT save before disarming; CE uses 'commit trial' instead.
+        """
+        if self.params.family.uses_commit:
+            return ""
+        hours, mins = divmod(max(1, min(minutes, 60)), 60)
+        conn = self._require()
+        out: str = conn.send_command_timing(f"schedule reboot delay {hours:02d}:{mins:02d}")
+        if "[Y/N]" in out or "continue" in out.lower():
+            out += conn.send_command_timing("y")
+        raise_on_cli_error("schedule reboot", out)
+        return out
+
+    def disarm_rollback_timer(self) -> str:
+        if self.params.family.uses_commit:
+            return ""
+        conn = self._require()
+        out: str = conn.send_command_timing("undo schedule reboot")
+        if "[Y/N]" in out or "continue" in out.lower():
+            out += conn.send_command_timing("y")
+        raise_on_cli_error("undo schedule reboot", out)
+        return out
+
     def capabilities(self) -> DeviceFacts:
         info = parse_version(self.run_show("display version").output)
         family = info.family if info.family is not DeviceFamily.UNKNOWN else self.params.family

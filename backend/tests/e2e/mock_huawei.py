@@ -10,14 +10,13 @@ from __future__ import annotations
 import asyncio
 import threading
 from collections.abc import Callable
-from dataclasses import dataclass, field
 from pathlib import Path
 
 import asyncssh
 
+from tests.e2e.cli_emulator import UNRECOGNIZED, WRONG_PARAMETER, HuaweiCliEmulator
+
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "huawei"
-UNRECOGNIZED = "\r\n          ^\r\nError: Unrecognized command found at '^' position."
-WRONG_PARAMETER = "\r\n          ^\r\nError: Wrong parameter found at '^' position."
 
 
 def load_outputs(generation: str) -> dict[str, str]:
@@ -35,86 +34,6 @@ def load_outputs(generation: str) -> dict[str, str]:
         command = command.replace("memory usage", "memory-usage").replace("user bind", "user-bind")
         outputs[command] = path.read_text(encoding="utf-8")
     return outputs
-
-
-@dataclass
-class HuaweiCliEmulator:
-    hostname: str = "SW-01"
-    family: str = "S"  # "S" or "CE"
-    outputs: dict[str, str] = field(default_factory=dict)
-    reject: set[str] = field(default_factory=set)
-    received: list[str] = field(default_factory=list)
-    running_config: list[str] = field(default_factory=list)
-    candidate: list[str] = field(default_factory=list)
-    saved: bool = False
-    commits: int = 0
-    view: str = "user"
-    _await_confirm: bool = False
-
-    def prompt(self) -> str:
-        if self.view == "user":
-            return f"<{self.hostname}>"
-        mark = ""
-        if self.family == "CE":
-            mark = "*" if self.candidate else "~"
-        suffix = "" if self.view == "system" else f"-{self.view}"
-        return f"[{mark}{self.hostname}{suffix}]"
-
-    def banner(self) -> str:
-        return "\r\nInfo: The max number of VTY users is 5, the number of current VTY users online is 1.\r\n"
-
-    def handle(self, line: str) -> str:
-        """Process one input line and return the text to print before the next prompt."""
-        cmd = line.strip()
-        if not cmd:
-            return ""
-        self.received.append(cmd)
-        if self._await_confirm:
-            self._await_confirm = False
-            if cmd.lower() == "y":
-                self.saved = True
-                return "\r\nNow saving the current configuration to the slot 0.\r\nInfo: Save the configuration successfully."
-            return ""
-        if cmd in self.reject:
-            return WRONG_PARAMETER
-        if cmd in {"screen-length 0 temporary", "undo screen-length temporary"}:
-            return "\r\nInfo: The configuration takes effect on the current user terminal interface only."
-        if cmd.startswith(("display", "dis ")):
-            text = self.outputs.get(" ".join(cmd.split()))
-            return "\r\n" + text.replace("\n", "\r\n") if text is not None else UNRECOGNIZED
-        return self._config(cmd)
-
-    def _config(self, cmd: str) -> str:
-        if cmd == "system-view":
-            self.view = "system"
-            return "\r\nEnter system view, return user view with return command."
-        if cmd == "return":
-            self.view = "user"
-            return ""
-        if cmd == "quit":
-            self.view = "system" if self.view not in {"system", "user"} else "user"
-            return ""
-        if cmd == "save" and self.view == "user":
-            self._await_confirm = True
-            return "\r\nWarning: The current configuration will be written to the device. Continue? [Y/N]:"
-        if self.view == "user":
-            return UNRECOGNIZED
-        if self.family == "CE" and cmd.startswith("commit"):
-            self.running_config.extend(self.candidate)
-            self.candidate.clear()
-            self.commits += 1
-            return ""
-        if self.family == "CE" and cmd == "abort":
-            self.candidate.clear()
-            self.view = "user"
-            return ""
-        if cmd.startswith("interface "):
-            self.view = cmd.split(" ", 1)[1].replace(" ", "")
-        elif cmd.startswith("vlan ") and not cmd.startswith("vlan batch"):
-            self.view = "vlan" + cmd.split(" ", 1)[1]
-        target = self.candidate if self.family == "CE" else self.running_config
-        target.append(cmd)
-        return ""
 
 
 class _SSHServer(asyncssh.SSHServer):
@@ -273,3 +192,13 @@ class MockHuaweiTelnet:
         asyncio.run_coroutine_threadsafe(stop(), self._loop).result(timeout=10)
         self._loop.call_soon_threadsafe(self._loop.stop)
         self._thread.join(timeout=5)
+
+
+__all__ = [
+    "UNRECOGNIZED",
+    "WRONG_PARAMETER",
+    "HuaweiCliEmulator",
+    "MockHuaweiSSH",
+    "MockHuaweiTelnet",
+    "load_outputs",
+]

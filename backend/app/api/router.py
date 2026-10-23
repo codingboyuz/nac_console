@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from app.api.deps import rate_limited
-from app.api.v1 import auth, device_groups, devices, users
+from app.api.v1 import arp, auth, device_groups, devices, interfaces, mac, stp, users, vlans
 
 api_router = APIRouter(
     prefix="/api/v1", dependencies=[Depends(rate_limited("global", "rate_limit_default"))]
@@ -16,5 +16,9 @@ api_router.include_router(users.audit_router)
 api_router.include_router(devices.router)
 api_router.include_router(device_groups.router)
 api_router.include_router(device_groups.cred_router)
+for _module in (vlans, interfaces, mac, stp):
+    api_router.include_router(_module.router)
+api_router.include_router(arp.router)
+api_router.include_router(arp.dhcp_router)
 
 internal_router = APIRouter(prefix="/internal/v1")
