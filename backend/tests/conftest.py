@@ -87,6 +87,7 @@ def make_settings(database_url: str = "sqlite+aiosqlite://", **overrides: Any) -
         "cors_origins": ["http://localhost:5173"],
         "discovery_allowed_subnets": ["10.0.0.0/16", "192.0.2.0/24"],
         "controller_ips": ["10.0.0.5"],
+        "job_dispatch": "inline",
     }
     base.update(overrides)
     return Settings(_env_file=None, **base)  # type: ignore[call-arg]

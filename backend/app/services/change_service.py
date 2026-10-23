@@ -44,6 +44,9 @@ class ChangeOptions:
     save: bool = True
     override_lockout: bool = False
     rollback_minutes: int | None = None
+    # Set only by the job runner after a job-level confirmation token was consumed at
+    # submission (never exposed through request schemas).
+    preconfirmed: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -165,7 +168,10 @@ class ChangeService:
                 findings,
                 token,
             )
-        if category is CommandCategory.DANGEROUS:
+        if category is CommandCategory.DANGEROUS and options.preconfirmed:
+            if not (options.reason and options.reason.strip()):
+                raise ValidationFailed("dangerous operations require an audit reason")
+        elif category is CommandCategory.DANGEROUS:
             await self._confirm.require(
                 confirm=options.confirm,
                 token=options.confirmation_token,

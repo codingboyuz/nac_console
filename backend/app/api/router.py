@@ -12,6 +12,7 @@ from app.api.v1 import (
     device_groups,
     devices,
     interfaces,
+    jobs,
     mac,
     routing,
     stp,
@@ -30,6 +31,7 @@ api_router.include_router(device_groups.router)
 api_router.include_router(device_groups.cred_router)
 for _module in (vlans, interfaces, mac, stp, acl, routing):
     api_router.include_router(_module.router)
+api_router.include_router(jobs.router)
 api_router.include_router(arp.router)
 api_router.include_router(arp.dhcp_router)
 

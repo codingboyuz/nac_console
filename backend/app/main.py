@@ -13,6 +13,7 @@ from redis.asyncio import Redis
 from app.api import health
 from app.api.audit_middleware import AuditMiddleware
 from app.api.router import api_router, internal_router
+from app.api.v1 import ws
 from app.core.config import Settings, get_settings
 from app.core.database import Database
 from app.core.errors import register_exception_handlers
@@ -96,6 +97,8 @@ def create_app(
 
     app.include_router(health.router)
     app.include_router(api_router)
+    # WebSockets are mounted outside api_router: its HTTP rate-limit dependency needs a Request.
+    app.include_router(ws.router, prefix="/api/v1")
     app.include_router(internal_router)
     if settings.metrics_enabled:
         setup_metrics(app)

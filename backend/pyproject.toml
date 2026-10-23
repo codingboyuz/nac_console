@@ -51,6 +51,7 @@ dev = [
     "types-paramiko",
     "celery-types>=0.22",
     "pgserver>=0.1.4",
+    "httpx-ws>=0.7",
 ]
 
 [tool.uv]

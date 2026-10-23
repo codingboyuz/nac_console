@@ -14,7 +14,7 @@ Re-read at the start of every session.
 | 5 | NETCONF and SNMP | done |
 | 6 | L2 features | done |
 | 7 | ACL and routing | done |
-| 8 | Job engine, Celery, WebSocket | pending |
+| 8 | Job engine, Celery, WebSocket | done |
 | 9 | Backups and config management | pending |
 | 10 | Monitoring, alerts, discovery | pending |
 | 11 | NAC and RADIUS | pending |
@@ -116,8 +116,29 @@ Re-read at the start of every session.
   reason -> 422, bad token -> 409.
 - Netmiko now uses `cmd_verify=True` and `fast_cli=True` (library defaults, pattern based).
 
+### Phase 8 - Job engine, Celery, WebSocket
+- Models jobs / job_device_results / settings (migration 0005). Job type registry
+  (`app/services/job_types.py`) with typed params, permission and queue per type.
+- `JobService`: 202 + Location, Idempotency-Key (per user; payload mismatch -> 409), scope
+  checks on every target, job-level confirmation for DANGEROUS bulk changes (dry-run job issues
+  a token visible only to its owner; consumed at submission), cancel (Redis flag + revoke).
+- `JobRunner`: atomic PENDING->RUNNING claim (stale RUNNING reclaimed), per-device fan-out with
+  concurrency cap, stop-on-failure threshold (rest SKIPPED), cancellation, progress, aggregate
+  SUCCESS/PARTIAL/FAILED/CANCELLED, Redis pub/sub events. Devices run with the submitter's
+  principal, so classifier/lockout/RBAC/audit apply per device.
+- Celery: queues config/polling/discovery/alerts/default, acks_late, reject_on_worker_lost,
+  prefetch 1, soft/hard limits, retry backoff+jitter; per-process worker runtime (persistent
+  loop + container). Beat runs a 15 s tick that evaluates DB-backed schedules (settings key
+  `schedules`) and submits jobs as a service account - edits apply without restarting beat.
+- WebSockets `/api/v1/ws/jobs/{id}`, `/ws/monitoring`, `/ws/alerts`: single-use tickets
+  (`POST /auth/ws-ticket`, query or first message), per-channel permission, close codes
+  4401/4403/4404. Domain events `config_changed`, `device_online`, `device_offline`.
+- Tests: in-process FakeDriver over the CLI emulator; Celery task eager run with a real worker
+  runtime; schedule tick; WebSocket via httpx-ws. Full suite: 551 passed.
+
 ## Open issues
 - Docker / compose cannot be executed on the build host (no Docker). See ASSUMPTIONS A1.
+- A real Celery worker against a real Redis broker was not run on the build host (no Redis); the task runs eagerly in tests.
 
 ## Next step
-- Phase 8: job engine (Celery queues, beat, locks, cancellation), Redis pub/sub -> WebSocket with tickets, bulk jobs.
+- Phase 9: backups (hash dedup, secret stripping, diff, drift, scheduled, guarded restore).

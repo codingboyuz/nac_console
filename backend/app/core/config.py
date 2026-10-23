@@ -91,6 +91,10 @@ class Settings(BaseSettings):
     ssh_strict_host_key: bool = True
     controller_ips: Annotated[list[str], NoDecode] = Field(default_factory=list)
 
+    # --- jobs ----------------------------------------------------------------------------
+    # "celery" in deployments; "inline" runs jobs as asyncio tasks in the API process (tests/dev).
+    job_dispatch: str = "celery"
+
     # --- discovery ---------------------------------------------------------------------
     discovery_max_prefix: int = 22
     discovery_allowed_subnets: Annotated[list[str], NoDecode] = Field(default_factory=list)

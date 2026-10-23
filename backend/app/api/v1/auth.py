@@ -52,6 +52,15 @@ async def logout(
     await services.auth.logout(claims, token)
 
 
+@router.post(
+    "/ws-ticket",
+    summary="Issue a single-use WebSocket ticket (valid for WS_TICKET_TTL_SECONDS)",
+)
+async def ws_ticket(principal: CurrentUser, services: Services) -> dict[str, str | int]:
+    ticket = await services.auth.issue_ws_ticket(principal)
+    return {"ticket": ticket, "expires_in": services.settings.ws_ticket_ttl_seconds}
+
+
 @router.get("/me", response_model=MeOut, summary="Current user and effective permissions")
 async def me(principal: CurrentUser, services: Services) -> MeOut:
     user = await services.users.get(principal.user_id)

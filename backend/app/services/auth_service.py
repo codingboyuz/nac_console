@@ -28,6 +28,7 @@ from app.services.audit_service import AuditService
 
 _REVOKED_JTI = "auth:revoked:jti:{}"
 _VALID_AFTER = "auth:valid_after:{}"
+_WS_TICKET = "auth:ws_ticket:{}"
 
 
 @dataclass(frozen=True, slots=True)
@@ -168,6 +169,33 @@ class AuthService:
         async with UnitOfWork(self._db) as uow:
             await uow.repo(RefreshTokenRepository).revoke_user(user_id, now)
             await uow.commit()
+
+    # --- WebSocket tickets ---------------------------------------------------------------
+    async def issue_ws_ticket(self, principal: Principal) -> str:
+        """Single-use, short-lived ticket so long-lived JWTs never appear in WebSocket URLs."""
+        ticket = new_opaque_token("wst")
+        await self._redis.set(
+            _WS_TICKET.format(sha256_hex(ticket)),
+            str(principal.user_id),
+            ex=self._settings.ws_ticket_ttl_seconds,
+        )
+        return ticket
+
+    async def redeem_ws_ticket(self, ticket: str) -> Principal:
+        user_id = await self._redis.getdel(_WS_TICKET.format(sha256_hex(ticket)))
+        if not user_id:
+            raise Unauthorized("invalid or expired WebSocket ticket")
+        async with UnitOfWork(self._db) as uow:
+            user = await uow.repo(UserRepository).get(uuid.UUID(str(user_id)))
+        if user is None or not user.is_active:
+            raise Unauthorized("user disabled")
+        return Principal(
+            user.id,
+            user.username,
+            user.role,
+            frozenset(uuid.UUID(g) for g in user.group_scope or []),
+            is_service_account=user.is_service_account,
+        )
 
     # --- per-request authentication ---------------------------------------------------
     async def authenticate(self, access_token: str) -> tuple[Principal, AccessClaims]:

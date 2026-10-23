@@ -10,6 +10,7 @@ import anyio
 
 from app.core.config import Settings
 from app.core.database import Database
+from app.core.events import EventBus
 from app.core.exceptions import (
     DeviceAuthFailed,
     DeviceUnreachable,
@@ -49,6 +50,7 @@ class DeviceConnector:
         self.factory = factory
         self._audit = audit
         self._fetch_key = host_key_fetcher
+        self.events: EventBus | None = None  # set by the container (device_online/offline)
 
     async def _secret(self, device: Device) -> ResolvedSecret | None:
         cred_id = device.credential_id
@@ -173,7 +175,18 @@ class DeviceConnector:
             row = await uow.repo(DeviceRepository).get(device.id)
             if row is None:
                 return
+            previous = row.status
             row.status = status
             if seen:
                 row.last_seen = datetime.now(UTC)
             await uow.commit()
+        if self.events is None or previous is status:
+            return
+        name = "device_online" if status is DeviceStatus.ONLINE else "device_offline"
+        await self.events.emit(
+            name,
+            device_id=str(device.id),
+            hostname=device.hostname,
+            status=status.value,
+            previous=previous.value,
+        )
