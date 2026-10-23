@@ -8,7 +8,7 @@ Re-read at the start of every session.
 |------:|------|--------|
 | 0 | Recon and scaffolding | done |
 | 1 | Core platform | done |
-| 2 | Auth, RBAC, audit | pending |
+| 2 | Auth, RBAC, audit | done |
 | 3 | Device inventory and credential vault | pending |
 | 4 | Driver layer: SSH, Telnet, classifier, parsers | pending |
 | 5 | NETCONF and SNMP | pending |
@@ -34,8 +34,19 @@ Re-read at the start of every session.
   live/ready, Prometheus `/metrics` (network restricted).
 - Tests run against embedded PostgreSQL 16 via pgserver.
 
+### Phase 2 - Auth, RBAC, audit
+- Users (Argon2id via argon2-cffi, rehash on login), lockout after N failures (423), JWT access
+  (PyJWT, iss/exp/jti, typ=access), opaque refresh tokens stored as SHA-256 with rotation and
+  family revocation on reuse, Redis jti denylist and per-user `valid_after` revocation.
+- RBAC: 5 roles, permission matrix in `app/core/rbac.py`, enforced by `require(Permission)`
+  dependencies; denials are audited.
+- Audit: append-only `audit_logs` (PostgreSQL trigger blocks UPDATE/DELETE), service-level
+  records + blanket ASGI audit middleware for mutating requests and 401/403 (no duplicates via a
+  per-request context marker).
+- Migration 0001; alembic upgrade/downgrade/check round-trip test on a fresh PostgreSQL database.
+
 ## Open issues
 - Docker / compose cannot be executed on the build host (no Docker). See ASSUMPTIONS A1.
 
 ## Next step
-- Phase 2: users, Argon2id, JWT access/refresh rotation, RBAC matrix, audit log.
+- Phase 3: device inventory, groups, credential vault (AES-256-GCM, key rotation).

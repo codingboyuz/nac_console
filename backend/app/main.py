@@ -11,6 +11,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from redis.asyncio import Redis
 
 from app.api import health
+from app.api.audit_middleware import AuditMiddleware
 from app.api.router import api_router, internal_router
 from app.core.config import Settings, get_settings
 from app.core.database import Database
@@ -90,6 +91,7 @@ def create_app(
             expose_headers=["X-Request-ID", "Location", "Retry-After"],
         )
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.trusted_hosts)
+    app.add_middleware(AuditMiddleware)
     app.add_middleware(RequestIdMiddleware)
 
     app.include_router(health.router)

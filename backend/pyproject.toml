@@ -67,6 +67,7 @@ ignore = [
     "PLR0913",  # many-argument constructors are common in typed builders
     "PLR2004",  # magic values in parsers are protocol constants
     "RUF012",
+    "PLR0917",  # FastAPI endpoints declare dependencies as parameters
     "N818",  # domain exceptions read better without an Error suffix (NotFound, Forbidden)
     "PLC0415",  # lazy imports keep heavy network libs out of the API process
 ]

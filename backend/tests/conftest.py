@@ -142,3 +142,49 @@ async def client(app: Any) -> AsyncIterator[AsyncClient]:
     transport = ASGITransport(app=app, client=("127.0.0.1", 50000))
     async with AsyncClient(transport=transport, base_url="http://testserver") as http:
         yield http
+
+
+# --- identity helpers ---------------------------------------------------------------------
+
+TEST_PASSWORD = "Str0ng!Passw0rd"  # test-only placeholder
+
+
+@pytest.fixture
+def user_factory(app: Any) -> Any:
+    """Create users directly through the service layer."""
+    from pydantic import SecretStr
+
+    from app.core.rbac import Role
+    from app.schemas.auth import UserCreate
+
+    async def _create(role: Role = Role.ADMIN, username: str | None = None) -> Any:
+        name = username or f"{role.value.lower()}_{secrets.token_hex(3)}"
+        data = UserCreate(username=name, password=SecretStr(TEST_PASSWORD), role=role)
+        return await app.state.services.users.create(data)
+
+    return _create
+
+
+@pytest.fixture
+def login(client: AsyncClient) -> Any:
+    async def _login(username: str, password: str = TEST_PASSWORD) -> dict[str, Any]:
+        resp = await client.post(
+            "/api/v1/auth/login", json={"username": username, "password": password}
+        )
+        assert resp.status_code == 200, resp.text
+        body: dict[str, Any] = resp.json()
+        return body
+
+    return _login
+
+
+@pytest.fixture
+def auth_headers(user_factory: Any, login: Any) -> Any:
+    """``await auth_headers(Role.X)`` -> Authorization header for a fresh user of that role."""
+
+    async def _headers(role: Any) -> dict[str, str]:
+        user = await user_factory(role)
+        tokens = await login(user.username)
+        return {"Authorization": f"Bearer {tokens['access_token']}"}
+
+    return _headers

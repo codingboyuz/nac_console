@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from logging.config import fileConfig
+from typing import Any
 
 from alembic import context
 from sqlalchemy.engine import Connection
@@ -11,12 +12,23 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.core.config import get_settings
 from app.models import Base
+from app.models.base import InetType, UtcDateTime
 
 config = context.config
 if config.config_file_name is not None and config.attributes.get("configure_logger", True):
     fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 target_metadata = Base.metadata
+
+
+def render_item(type_: str, obj: Any, autogen_context: Any) -> str | bool:
+    """Render app TypeDecorators as plain SQLAlchemy types so migrations stay standalone."""
+    if type_ == "type" and isinstance(obj, UtcDateTime):
+        return "sa.DateTime(timezone=True)"
+    if type_ == "type" and isinstance(obj, InetType):
+        autogen_context.imports.add("from sqlalchemy.dialects import postgresql")
+        return "sa.String(length=45).with_variant(postgresql.INET(), 'postgresql')"
+    return False
 
 
 def _url() -> str:
@@ -30,6 +42,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         compare_type=True,
+        render_item=render_item,
         render_as_batch=_url().startswith("sqlite"),
     )
     with context.begin_transaction():
@@ -41,6 +54,7 @@ def _do_run(connection: Connection) -> None:
         connection=connection,
         target_metadata=target_metadata,
         compare_type=True,
+        render_item=render_item,
         render_as_batch=connection.dialect.name == "sqlite",
     )
     with context.begin_transaction():

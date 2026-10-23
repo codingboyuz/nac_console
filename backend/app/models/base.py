@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
+from enum import StrEnum
 from typing import Any
 
 from sqlalchemy import JSON, DateTime, MetaData, String, TypeDecorator, Uuid, func
+from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import INET, JSONB
 from sqlalchemy.engine import Dialect
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -76,4 +78,17 @@ class TimestampMixin:
     )
     updated_at: Mapped[datetime] = mapped_column(
         UtcDateTime(), default=utcnow, onupdate=utcnow, server_default=func.now(), nullable=False
+    )
+
+
+def str_enum(enum_cls: type[StrEnum], name: str) -> SAEnum:
+    """Enum stored as VARCHAR + CHECK constraint (consistent across all tables)."""
+    return SAEnum(
+        enum_cls,
+        name=name,
+        native_enum=False,
+        create_constraint=True,
+        length=32,
+        values_callable=lambda members: [m.value for m in members],
+        validate_strings=True,
     )
