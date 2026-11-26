@@ -4,8 +4,13 @@ set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RUN="$ROOT/backend/.localdev/run"
-BACKEND_PORT="${BACKEND_PORT:-8000}"
-FRONTEND_PORT="${FRONTEND_PORT:-3000}"
+conf_get() {  # nac.conf dan KALIT=QIYMAT
+  local conf="${NAC_CONF:-$ROOT/nac.conf}"
+  [ -f "$conf" ] || return 0
+  sed -n "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*//p" "$conf" | tail -n 1 | tr -d '\r' | sed 's/[[:space:]]*$//'
+}
+BACKEND_PORT="${BACKEND_PORT:-$(conf_get BACKEND_PORT)}"; BACKEND_PORT="${BACKEND_PORT:-8000}"
+FRONTEND_PORT="${FRONTEND_PORT:-$(conf_get FRONTEND_PORT)}"; FRONTEND_PORT="${FRONTEND_PORT:-3000}"
 
 # Port hali band bo'lsa (masalan npm -> node bola jarayoni qolgan bo'lsa), uni tinglayotgan
 # jarayonni to'xtatamiz - faqat node/python bo'lsa, boshqa dasturlarga tegmaymiz.

@@ -44,6 +44,16 @@ and saved to `backend/.localdev/ADMIN_PASSWORD.txt`. Keep `backend/.localdev/sec
 it holds the key that decrypts stored device credentials. For local use only - production
 runs on PostgreSQL / Redis / Celery (below). Set `NAC_DATABASE_URL` to use PostgreSQL locally.
 
+### Settings: `nac.conf`
+
+Both launchers read `nac.conf` in the repo root (created from `nac.conf.example` on first
+start, never committed): `BACKEND_HOST`/`BACKEND_PORT`, `FRONTEND_HOST`/`FRONTEND_PORT`,
+`PUBLIC_HOST` (address other machines use, e.g. `192.168.15.152`), `ADMIN_USERNAME` /
+`ADMIN_PASSWORD` (the admin account is created or its password reset to this value on every
+start; empty password = random one in `backend/.localdev/ADMIN_PASSWORD.txt`), plus
+`INTERNAL_ALLOWED_NETWORKS` (FreeRADIUS), `DISCOVERY_SUBNETS`, `CONTROLLER_IPS`.
+Command-line `--host` and environment variables override the file.
+
 ## Quick start (Linux / macOS)
 
 `./start.sh` does the same as `start.bat`: checks Python 3 and Node.js 20+, installs `uv`

@@ -1,0 +1,44 @@
+# =============================================================================
+#  NAC Console - lokal ishga tushirish sozlamalari (start.sh / start.bat)
+#
+#  Bu shablon. Haqiqiy sozlamalar "nac.conf" faylida turadi: u birinchi ishga
+#  tushishda shu fayldan avtomatik yaratiladi va GitHub ga yuborilmaydi
+#  (.gitignore). Parolni faqat nac.conf ga yozing, bu faylga emas.
+#
+#  Format: KALIT=QIYMAT  (qo'shtirnoq shart emas, # bilan boshlangan qator - izoh)
+#  Muhit o'zgaruvchilari va start.sh --host bu fayldagi qiymatlardan ustun turadi.
+# =============================================================================
+
+# --- Backend (FastAPI) ---------------------------------------------------------
+# 127.0.0.1 - faqat shu kompyuterdan;  0.0.0.0 - barcha tarmoq interfeyslarida
+BACKEND_HOST=127.0.0.1
+BACKEND_PORT=8000
+
+# --- Frontend (veb-panel) --------------------------------------------------------
+FRONTEND_HOST=127.0.0.1
+FRONTEND_PORT=3000
+
+# --- Boshqa kompyuterlardan kirish -------------------------------------------------
+# Server manzili (masalan 192.168.15.152). To'ldirilsa, panel va backend tarmoqqa
+# ochiladi va brauzerda http://PUBLIC_HOST:FRONTEND_PORT orqali kiriladi.
+# Bo'sh bo'lsa - faqat localhost.
+PUBLIC_HOST=
+
+# --- Administrator -------------------------------------------------------------------
+# Har ishga tushishda shu login bilan ADMIN foydalanuvchi bo'lishi ta'minlanadi.
+# ADMIN_PASSWORD to'ldirilsa, parol shu qiymatga o'rnatiladi (o'zgartirsangiz,
+# keyingi ishga tushishda yangilanadi). Talab: kamida 12 belgi, kichik/katta harf,
+# raqam va belgidan kamida 3 turi.
+# Bo'sh qoldirilsa: birinchi marta tasodifiy parol yaratiladi va
+# backend/.localdev/ADMIN_PASSWORD.txt ga yoziladi.
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=
+
+# --- Qo'shimcha (ixtiyoriy) ------------------------------------------------------------
+# FreeRADIUS server(lar)i manzili - backendning /internal endpointlariga ruxsat
+# (vergul bilan, masalan 192.168.15.20/32). Bo'sh = faqat localhost.
+INTERNAL_ALLOWED_NETWORKS=
+# Discovery skanerlashiga ruxsat etilgan tarmoqlar (bo'sh = 10/8, 172.16/12, 192.168/16)
+DISCOVERY_SUBNETS=
+# Platforma (controller) IP manzillari - lockout himoyasi uchun
+CONTROLLER_IPS=

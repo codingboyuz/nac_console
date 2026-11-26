@@ -29,6 +29,8 @@ next-env.d.ts
 !**/.env.example
 # Local all-in-one runner data: SQLite DB, vault key (secrets.json), admin password
 backend/.localdev/
+# Local runner settings incl. the admin password (template: nac.conf.example)
+/nac.conf
 # Keys, certificates, keystores
 *.pem
 *.key

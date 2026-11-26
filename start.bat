@@ -5,8 +5,9 @@ rem  tushiradi. Docker / PostgreSQL / Redis kerak emas: backend SQLite fayli
 rem  (backend\.localdev\nac.db) va xotiradagi Redis bilan ishlaydi.
 rem
 rem  Ishga tushirish:  start.bat        To'xtatish:  stop.bat
-rem  Boshqa kompyuterlardan ochish:  start.bat 192.168.15.152
-rem  (yoki NAC_PUBLIC_HOST muhit o'zgaruvchisi) - panel va backend tarmoqqa ochiladi.
+rem  Sozlamalar:       nac.conf (IP/port, tarmoq manzili, admin login/parol);
+rem                    birinchi ishga tushishda nac.conf.example dan yaratiladi.
+rem  start.bat 192.168.15.152  - nac.conf dagi PUBLIC_HOST ni shu safar almashtiradi.
 rem ============================================================================
 setlocal EnableExtensions
 cd /d "%~dp0"
@@ -14,19 +15,58 @@ title NAC Console - ishga tushirish
 set "SYS=%SystemRoot%\System32"
 set "PS=%SYS%\WindowsPowerShell\v1.0\powershell.exe"
 
-set "BACKEND_PORT=8000"
-set "FRONTEND_PORT=3000"
-if not "%~1"=="" set "NAC_PUBLIC_HOST=%~1"
-set "BROWSER_HOST=localhost"
-set "FRONTEND_BIND=127.0.0.1"
-if defined NAC_PUBLIC_HOST (
-  set "BROWSER_HOST=%NAC_PUBLIC_HOST%"
-  set "FRONTEND_BIND=0.0.0.0"
-  if not defined NAC_HOST set "NAC_HOST=0.0.0.0"
+rem --- nac.conf (KALIT=QIYMAT) - birinchi marta shablondan yaratiladi -------------------
+if not exist "nac.conf" if exist "nac.conf.example" (
+  copy /y "nac.conf.example" "nac.conf" >nul
+  set "CONF_CREATED=1"
 )
+for %%K in (BACKEND_HOST BACKEND_PORT FRONTEND_HOST FRONTEND_PORT PUBLIC_HOST ADMIN_USERNAME ADMIN_PASSWORD) do set "CONF_%%K="
+if exist "nac.conf" for /f "usebackq eol=# tokens=1* delims==" %%A in ("nac.conf") do set "CONF_%%A=%%B"
+
+rem Ustunlik: buyruq argumenti  >  muhit o'zgaruvchisi  >  nac.conf  >  standart qiymat
+if not defined BACKEND_PORT set "BACKEND_PORT=%CONF_BACKEND_PORT%"
+if not defined BACKEND_PORT set "BACKEND_PORT=8000"
+if not defined FRONTEND_PORT set "FRONTEND_PORT=%CONF_FRONTEND_PORT%"
+if not defined FRONTEND_PORT set "FRONTEND_PORT=3000"
+if not "%~1"=="" set "NAC_PUBLIC_HOST=%~1"
+if not defined NAC_PUBLIC_HOST set "NAC_PUBLIC_HOST=%CONF_PUBLIC_HOST%"
+set "BACKEND_BIND=%NAC_HOST%"
+if not defined BACKEND_BIND set "BACKEND_BIND=%CONF_BACKEND_HOST%"
+if not defined BACKEND_BIND set "BACKEND_BIND=127.0.0.1"
+set "FRONTEND_BIND=%FRONTEND_HOST%"
+if not defined FRONTEND_BIND set "FRONTEND_BIND=%CONF_FRONTEND_HOST%"
+if not defined FRONTEND_BIND set "FRONTEND_BIND=127.0.0.1"
+set "ADMIN_USER=%NAC_ADMIN_USERNAME%"
+if not defined ADMIN_USER set "ADMIN_USER=%CONF_ADMIN_USERNAME%"
+if not defined ADMIN_USER set "ADMIN_USER=admin"
+set "ADMIN_PW_SET="
+if defined NAC_ADMIN_PASSWORD set "ADMIN_PW_SET=1"
+if defined CONF_ADMIN_PASSWORD set "ADMIN_PW_SET=1"
+set "CONF_ADMIN_PASSWORD="
+
+set "BROWSER_HOST=localhost"
+if defined NAC_PUBLIC_HOST (
+  rem Boshqa kompyuterlardan kirish: panel va backend - WebSocket uchun - barcha interfeyslarda.
+  set "BROWSER_HOST=%NAC_PUBLIC_HOST%"
+  if "%FRONTEND_BIND%"=="127.0.0.1" set "FRONTEND_BIND=0.0.0.0"
+  if "%BACKEND_BIND%"=="127.0.0.1" set "BACKEND_BIND=0.0.0.0"
+)
+set "NAC_HOST=%BACKEND_BIND%"
+set "NAC_PORT=%BACKEND_PORT%"
+
+rem Shu kompyuterdan xizmatlarga murojaat manzili (tekshiruvlar va frontend -> backend uchun).
+set "BACKEND_LOCAL=%BACKEND_BIND%"
+if "%BACKEND_BIND%"=="0.0.0.0" set "BACKEND_LOCAL=127.0.0.1"
+if "%BACKEND_BIND%"=="localhost" set "BACKEND_LOCAL=127.0.0.1"
+set "FRONTEND_LOCAL=%FRONTEND_BIND%"
+if "%FRONTEND_BIND%"=="0.0.0.0" set "FRONTEND_LOCAL=127.0.0.1"
+if "%FRONTEND_BIND%"=="localhost" set "FRONTEND_LOCAL=127.0.0.1"
 
 echo.
 echo  NAC Console ishga tushirilmoqda...
+echo.
+if defined CONF_CREATED echo  nac.conf yaratildi - IP/port va admin parolini shu faylda o'zgartiring.
+echo  Sozlamalar: nac.conf  - backend %BACKEND_BIND%:%BACKEND_PORT%, frontend %FRONTEND_BIND%:%FRONTEND_PORT%
 echo.
 
 rem --- talablar -----------------------------------------------------------------
@@ -81,20 +121,20 @@ echo        Kutubxonalar tayyor.
 echo.
 
 rem --- backend ----------------------------------------------------------------------
-echo  Backend:  http://localhost:%BACKEND_PORT%   - alohida oynada
+echo  Backend:  http://%BROWSER_HOST%:%BACKEND_PORT%   - alohida oynada
 start "NAC backend" /D "%~dp0backend" cmd /k ".venv\Scripts\python.exe -u scripts\dev_run.py"
 echo  Backend tayyor bo'lishi kutilmoqda...
-call :wait_http "http://127.0.0.1:%BACKEND_PORT%/health/live" || (
+call :wait_http "http://%BACKEND_LOCAL%:%BACKEND_PORT%/health/live" || (
   echo  [XATO] Backend 3 daqiqada ishga tushmadi. "NAC backend" oynasidagi xabarni tekshiring.
   goto :fail
 )
 
 rem --- frontend -----------------------------------------------------------------------
-echo  Frontend: http://localhost:%FRONTEND_PORT%   - alohida oynada
+echo  Frontend: http://%BROWSER_HOST%:%FRONTEND_PORT%   - alohida oynada
 rem COOKIE_SECURE=false: lokal runner http orqali ishlaydi; NEXT_PUBLIC_WS_URL: brauzer -> backend WebSocket.
-start "NAC frontend" /D "%~dp0frontend" cmd /k "set BACKEND_URL=http://127.0.0.1:%BACKEND_PORT%&& set COOKIE_SECURE=false&& set NEXT_PUBLIC_WS_URL=ws://%BROWSER_HOST%:%BACKEND_PORT%&& set NAC_PUBLIC_HOST=%NAC_PUBLIC_HOST%&& npm run dev -- -H %FRONTEND_BIND% -p %FRONTEND_PORT%"
+start "NAC frontend" /D "%~dp0frontend" cmd /k "set BACKEND_URL=http://%BACKEND_LOCAL%:%BACKEND_PORT%&& set COOKIE_SECURE=false&& set NEXT_PUBLIC_WS_URL=ws://%BROWSER_HOST%:%BACKEND_PORT%&& set NAC_PUBLIC_HOST=%NAC_PUBLIC_HOST%&& npm run dev -- -H %FRONTEND_BIND% -p %FRONTEND_PORT%"
 echo  Frontend tayyor bo'lishi kutilmoqda...
-call :wait_http "http://localhost:%FRONTEND_PORT%/login" || (
+call :wait_http "http://%FRONTEND_LOCAL%:%FRONTEND_PORT%/login" || (
   echo  [XATO] Frontend 3 daqiqada ishga tushmadi. "NAC frontend" oynasidagi xabarni tekshiring.
   goto :fail
 )
@@ -104,7 +144,11 @@ echo.
 echo  ============================================================
 echo   Tayyor!  Brauzer: http://%BROWSER_HOST%:%FRONTEND_PORT%
 if defined NAC_PUBLIC_HOST echo   Tarmoq: %FRONTEND_PORT% va %BACKEND_PORT% portlarini Windows Firewall da oching.
-if exist "backend\.localdev\ADMIN_PASSWORD.txt" echo   Kirish ma'lumotlari: backend\.localdev\ADMIN_PASSWORD.txt
+if defined ADMIN_PW_SET (
+  echo   Kirish: login %ADMIN_USER%, parol: nac.conf dagi ADMIN_PASSWORD
+) else if exist "backend\.localdev\ADMIN_PASSWORD.txt" (
+  echo   Kirish ma'lumotlari: backend\.localdev\ADMIN_PASSWORD.txt
+)
 echo   To'xtatish uchun: stop.bat
 echo  ============================================================
 echo.
