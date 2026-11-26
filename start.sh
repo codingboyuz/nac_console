@@ -6,9 +6,11 @@
 #
 #  Ishga tushirish:  ./start.sh          To'xtatish:  ./stop.sh
 #  ./start.sh --deps  o'rnatilgan asosiy kutubxonalar ro'yxatini har doim ko'rsatadi
+#  ./start.sh --host 192.168.15.152   panelni boshqa kompyuterlardan shu manzil orqali ochish
 #  Loglar:           backend/.localdev/logs/{backend,frontend}.log
 #
 #  Sozlamalar (ixtiyoriy, muhit o'zgaruvchilari):
+#    NAC_PUBLIC_HOST=192.168.15.152       --host bilan bir xil
 #    NAC_HOST=0.0.0.0                     backendni tarmoqqa ochish (standart 127.0.0.1)
 #    FRONTEND_HOST=0.0.0.0                panelni tarmoqqa ochish (standart 127.0.0.1)
 #    BACKEND_PORT=8000  FRONTEND_PORT=3000
@@ -25,18 +27,33 @@ LOGS="$BACKEND/.localdev/logs"
 BACKEND_PORT="${BACKEND_PORT:-8000}"
 FRONTEND_PORT="${FRONTEND_PORT:-3000}"
 NAC_HOST="${NAC_HOST:-127.0.0.1}"
+[ -n "${FRONTEND_HOST:-}" ] && FRONTEND_HOST_SET=1
 FRONTEND_HOST="${FRONTEND_HOST:-127.0.0.1}"
 export NAC_HOST NAC_PORT="$BACKEND_PORT"
 # Kesh va loyiha turli disklarda bo'lsa ham uv ogohlantirmasin (nusxalab o'rnatadi).
 export UV_LINK_MODE="${UV_LINK_MODE:-copy}"
 SHOW_DEPS=0
-for arg in "$@"; do
-  case "$arg" in
+PUBLIC_HOST="${NAC_PUBLIC_HOST:-}"
+while [ $# -gt 0 ]; do
+  case "$1" in
     --deps|-d) SHOW_DEPS=1 ;;
-    -h|--help) sed -n '2,16p' "$0"; exit 0 ;;
-    *) printf "Noma'lum parametr: %s  (./start.sh --help)\n" "$arg" >&2; exit 2 ;;
+    --host) [ $# -ge 2 ] || { echo "--host dan keyin IP yoki hostname yozing" >&2; exit 2; }; PUBLIC_HOST="$2"; shift ;;
+    --host=*) PUBLIC_HOST="${1#--host=}" ;;
+    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
+    *) printf "Noma'lum parametr: %s  (./start.sh --help)\n" "$1" >&2; exit 2 ;;
   esac
+  shift
 done
+if [ -n "$PUBLIC_HOST" ]; then
+  case "$PUBLIC_HOST" in
+    *[!A-Za-z0-9.:-]*|"") echo "Noto'g'ri --host qiymati: $PUBLIC_HOST" >&2; exit 2 ;;
+  esac
+  # Boshqa kompyuterlardan kirish: panel va backend (WebSocket uchun) barcha interfeyslarda tinglaydi.
+  [ -n "${FRONTEND_HOST_SET:-}" ] || FRONTEND_HOST="0.0.0.0"
+  [ "$NAC_HOST" != "127.0.0.1" ] || NAC_HOST="0.0.0.0"
+  export NAC_HOST
+fi
+BROWSER_HOST="${PUBLIC_HOST:-localhost}"
 
 if [ -t 1 ]; then R=$'\e[31m'; G=$'\e[32m'; Y=$'\e[33m'; B=$'\e[1m'; N=$'\e[0m'; else R=; G=; Y=; B=; N=; fi
 info() { printf ' %s\n' "$*"; }
@@ -156,7 +173,11 @@ if ! wait_http "http://127.0.0.1:$BACKEND_PORT/health/live" backend; then
 fi
 
 info "Frontend: http://$FRONTEND_HOST:$FRONTEND_PORT   (log: backend/.localdev/logs/frontend.log)"
-BACKEND_URL="http://127.0.0.1:$BACKEND_PORT" launch frontend "$FRONTEND" npm run dev -- -H "$FRONTEND_HOST" -p "$FRONTEND_PORT"
+# COOKIE_SECURE=false: bu lokal runner http orqali ishlaydi (Secure cookie faqat https da saqlanadi).
+# NEXT_PUBLIC_WS_URL: brauzer WebSocket ni to'g'ridan-to'g'ri backendga ochadi.
+BACKEND_URL="http://127.0.0.1:$BACKEND_PORT" COOKIE_SECURE=false \
+  NEXT_PUBLIC_WS_URL="ws://$BROWSER_HOST:$BACKEND_PORT" NAC_PUBLIC_HOST="$PUBLIC_HOST" \
+  launch frontend "$FRONTEND" npm run dev -- -H "$FRONTEND_HOST" -p "$FRONTEND_PORT"
 info "Frontend tayyor bo'lishi kutilmoqda..."
 if ! wait_http "http://127.0.0.1:$FRONTEND_PORT/login" frontend; then
   tail -n 25 "$LOGS/frontend.log" >&2 || true
@@ -164,8 +185,11 @@ if ! wait_http "http://127.0.0.1:$FRONTEND_PORT/login" frontend; then
   fail "Frontend ishga tushmadi. To'liq log: backend/.localdev/logs/frontend.log"
 fi
 
-URL="http://localhost:$FRONTEND_PORT"
-[ "$FRONTEND_HOST" = "0.0.0.0" ] && URL="http://$(hostname -I 2>/dev/null | awk '{print $1}'):$FRONTEND_PORT"
+URL="http://$BROWSER_HOST:$FRONTEND_PORT"
+if [ -z "$PUBLIC_HOST" ] && [ "$FRONTEND_HOST" = "0.0.0.0" ]; then
+  LAN_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+  [ -n "$LAN_IP" ] && URL="http://$LAN_IP:$FRONTEND_PORT"
+fi
 echo
 printf ' %s============================================================%s\n' "$G" "$N"
 printf '  %sTayyor!%s  Brauzer: %s\n' "$G" "$N" "$URL"
@@ -174,6 +198,10 @@ if [ -f "$BACKEND/.localdev/ADMIN_PASSWORD.txt" ]; then
     "$(sed -n 2p "$BACKEND/.localdev/ADMIN_PASSWORD.txt")"
 fi
 printf '  Loglar:   tail -f backend/.localdev/logs/*.log\n'
+if [ -n "$PUBLIC_HOST" ]; then
+  printf '  Tarmoq:   %s:%s (panel) va %s (backend/WebSocket) ochiq bo%sldi.\n' "$PUBLIC_HOST" "$FRONTEND_PORT" "$BACKEND_PORT" "'"
+  printf '            Firewall: sudo ufw allow %s/tcp && sudo ufw allow %s/tcp\n' "$FRONTEND_PORT" "$BACKEND_PORT"
+fi
 printf '  To%sxtatish: ./stop.sh\n' "'"
 printf ' %s============================================================%s\n\n' "$G" "$N"
 command -v xdg-open >/dev/null 2>&1 && [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ] && xdg-open "$URL" >/dev/null 2>&1 || true

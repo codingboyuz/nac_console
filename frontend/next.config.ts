@@ -1,7 +1,14 @@
 import type { NextConfig } from "next";
 
+// Extra hostnames/IPs the dev server accepts (e.g. "192.168.15.152" when the console is opened
+// from other machines). start.sh / start.bat set it from --host / NAC_PUBLIC_HOST.
+const publicHosts = (process.env.NAC_PUBLIC_HOST ?? "")
+  .split(",")
+  .map((h) => h.trim())
+  .filter(Boolean);
+
 const nextConfig: NextConfig = {
-  /* config options here */
+  allowedDevOrigins: publicHosts,
   cacheComponents: true,
   partialPrefetching: true,
   experimental: {

@@ -50,7 +50,9 @@ runs on PostgreSQL / Redis / Celery (below). Set `NAC_DATABASE_URL` to use Postg
 if needed (which fetches Python 3.12 itself when the system Python is older), runs
 `uv sync` / `npm install`, starts both services in the background and prints the URL and
 admin login. Logs: `backend/.localdev/logs/`. Stop with `./stop.sh`.
-`NAC_HOST=0.0.0.0 FRONTEND_HOST=0.0.0.0 ./start.sh` exposes both to the network;
+`./start.sh --host 192.168.15.152` (or `start.bat 192.168.15.152`) serves the console to other
+machines at that address - it binds both services to all interfaces, allows that origin in the
+Next.js dev server and points the browser WebSocket at the backend;
 `NAC_INTERNAL_ALLOWED_NETWORKS=<freeradius-ip>/32` lets a FreeRADIUS server call the backend.
 
 ## Quick start (Docker)

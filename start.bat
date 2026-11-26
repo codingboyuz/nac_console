@@ -5,6 +5,8 @@ rem  tushiradi. Docker / PostgreSQL / Redis kerak emas: backend SQLite fayli
 rem  (backend\.localdev\nac.db) va xotiradagi Redis bilan ishlaydi.
 rem
 rem  Ishga tushirish:  start.bat        To'xtatish:  stop.bat
+rem  Boshqa kompyuterlardan ochish:  start.bat 192.168.15.152
+rem  (yoki NAC_PUBLIC_HOST muhit o'zgaruvchisi) - panel va backend tarmoqqa ochiladi.
 rem ============================================================================
 setlocal EnableExtensions
 cd /d "%~dp0"
@@ -14,6 +16,14 @@ set "PS=%SYS%\WindowsPowerShell\v1.0\powershell.exe"
 
 set "BACKEND_PORT=8000"
 set "FRONTEND_PORT=3000"
+if not "%~1"=="" set "NAC_PUBLIC_HOST=%~1"
+set "BROWSER_HOST=localhost"
+set "FRONTEND_BIND=127.0.0.1"
+if defined NAC_PUBLIC_HOST (
+  set "BROWSER_HOST=%NAC_PUBLIC_HOST%"
+  set "FRONTEND_BIND=0.0.0.0"
+  if not defined NAC_HOST set "NAC_HOST=0.0.0.0"
+)
 
 echo.
 echo  NAC Console ishga tushirilmoqda...
@@ -81,17 +91,19 @@ call :wait_http "http://127.0.0.1:%BACKEND_PORT%/health/live" || (
 
 rem --- frontend -----------------------------------------------------------------------
 echo  Frontend: http://localhost:%FRONTEND_PORT%   - alohida oynada
-start "NAC frontend" /D "%~dp0frontend" cmd /k "set BACKEND_URL=http://127.0.0.1:%BACKEND_PORT%&& npm run dev -- -p %FRONTEND_PORT%"
+rem COOKIE_SECURE=false: lokal runner http orqali ishlaydi; NEXT_PUBLIC_WS_URL: brauzer -> backend WebSocket.
+start "NAC frontend" /D "%~dp0frontend" cmd /k "set BACKEND_URL=http://127.0.0.1:%BACKEND_PORT%&& set COOKIE_SECURE=false&& set NEXT_PUBLIC_WS_URL=ws://%BROWSER_HOST%:%BACKEND_PORT%&& set NAC_PUBLIC_HOST=%NAC_PUBLIC_HOST%&& npm run dev -- -H %FRONTEND_BIND% -p %FRONTEND_PORT%"
 echo  Frontend tayyor bo'lishi kutilmoqda...
 call :wait_http "http://localhost:%FRONTEND_PORT%/login" || (
   echo  [XATO] Frontend 3 daqiqada ishga tushmadi. "NAC frontend" oynasidagi xabarni tekshiring.
   goto :fail
 )
 
-start "" "http://localhost:%FRONTEND_PORT%"
+start "" "http://%BROWSER_HOST%:%FRONTEND_PORT%"
 echo.
 echo  ============================================================
-echo   Tayyor!  Brauzer: http://localhost:%FRONTEND_PORT%
+echo   Tayyor!  Brauzer: http://%BROWSER_HOST%:%FRONTEND_PORT%
+if defined NAC_PUBLIC_HOST echo   Tarmoq: %FRONTEND_PORT% va %BACKEND_PORT% portlarini Windows Firewall da oching.
 if exist "backend\.localdev\ADMIN_PASSWORD.txt" echo   Kirish ma'lumotlari: backend\.localdev\ADMIN_PASSWORD.txt
 echo   To'xtatish uchun: stop.bat
 echo  ============================================================
