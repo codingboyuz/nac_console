@@ -20,12 +20,21 @@ echo  NAC Console ishga tushirilmoqda...
 echo.
 
 rem --- talablar -----------------------------------------------------------------
-"%SYS%\where.exe" py >nul 2>nul || (
-  echo  [XATO] Python topilmadi. Python 3.12 ni o'rnating: https://www.python.org/downloads/
+rem Python 3.12+: avval "py -3.12" (python.org o'rnatuvchisi), bo'lmasa "python".
+set "PY="
+py -3.12 -c "import sys" >nul 2>nul && set "PY=py -3.12"
+if not defined PY python -c "import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)" >nul 2>nul && set "PY=python"
+if not defined PY (
+  echo  [XATO] Python 3.12 yoki yangisi topilmadi.
+  echo         O'rnating: https://www.python.org/downloads/  - "Add python.exe to PATH" belgisini qo'ying.
   goto :fail
 )
 "%SYS%\where.exe" npm >nul 2>nul || (
-  echo  [XATO] Node.js topilmadi. Node.js 20+ ni o'rnating: https://nodejs.org/
+  echo  [XATO] Node.js topilmadi. Node.js 20 yoki yangisini o'rnating: https://nodejs.org/
+  goto :fail
+)
+node -e "process.exit(Number(process.versions.node.split('.')[0]) >= 20 ? 0 : 1)" >nul 2>nul || (
+  echo  [XATO] Node.js versiyasi eski. Node.js 20 yoki yangisini o'rnating: https://nodejs.org/
   goto :fail
 )
 
@@ -39,20 +48,27 @@ call :port_busy %FRONTEND_PORT% && (
   goto :fail
 )
 
-rem --- bog'liqliklar (faqat birinchi marta) ---------------------------------------
-if not exist "backend\.venv\Scripts\python.exe" (
-  echo  [1/2] Backend kutubxonalari o'rnatilmoqda - birinchi marta, bir necha daqiqa...
-  pushd backend
-  py -3.12 -m uv --version >nul 2>nul || py -3.12 -m pip install --user uv || (popd & goto :fail)
-  py -3.12 -m uv sync || (popd & goto :fail)
-  popd
+rem --- kutubxonalar: har safar tekshiriladi, faqat yetishmaganlari o'rnatiladi -------
+rem Backend: uv "backend\.venv" ni yaratadi va pyproject.toml / uv.lock dagi kutubxonalarni
+rem o'rnatadi (dev guruhi bilan: fakeredis, aiosqlite - lokal ishga tushirish uchun kerak).
+echo  [1/2] Backend kutubxonalari tekshirilmoqda - backend\.venv
+pushd backend
+%PY% -m uv --version >nul 2>nul || (
+  echo        uv o'rnatilmoqda...
+  %PY% -m pip install --user --quiet --disable-pip-version-check uv || (popd & goto :fail_deps)
 )
-if not exist "frontend\node_modules" (
-  echo  [2/2] Frontend kutubxonalari o'rnatilmoqda - birinchi marta, bir necha daqiqa...
-  pushd frontend
-  call npm install || (popd & goto :fail)
-  popd
-)
+if not exist ".venv\Scripts\python.exe" echo        Birinchi marta: .venv yaratilmoqda, bir necha daqiqa kuting...
+%PY% -m uv sync --quiet || (popd & goto :fail_deps)
+popd
+
+rem Frontend: package.json / package-lock.json dagi kutubxonalar frontend\node_modules ga.
+echo  [2/2] Frontend kutubxonalari tekshirilmoqda - frontend\node_modules
+pushd frontend
+if not exist "node_modules" echo        Birinchi marta: kutubxonalar yuklanmoqda, bir necha daqiqa kuting...
+call npm install --no-audit --no-fund --loglevel=error || (popd & goto :fail_deps)
+popd
+echo        Kutubxonalar tayyor.
+echo.
 
 rem --- backend ----------------------------------------------------------------------
 echo  Backend:  http://localhost:%BACKEND_PORT%   - alohida oynada
@@ -92,6 +108,12 @@ exit /b %errorlevel%
 rem 180 soniyagacha har soniyada so'raydi; 200 javob kelsa 0 bilan qaytadi.
 "%PS%" -NoProfile -Command "$u='%~1'; for ($i=0; $i -lt 180; $i++) { try { if ((Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 $u).StatusCode -eq 200) { exit 0 } } catch {}; Start-Sleep -Seconds 1 }; exit 1"
 exit /b %errorlevel%
+
+:fail_deps
+echo.
+echo  [XATO] Kutubxonalarni o'rnatib bo'lmadi. Internet aloqasini (proksi bo'lsa sozlamasini)
+echo         tekshiring va start.bat ni qayta ishga tushiring. Xato matni yuqorida.
+goto :fail
 
 :fail
 echo.

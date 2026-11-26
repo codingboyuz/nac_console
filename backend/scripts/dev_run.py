@@ -11,7 +11,8 @@
 
 For local use only: production runs with real PostgreSQL / Redis / Celery (docs/DEPLOYMENT.md).
 Environment overrides: NAC_HOST (127.0.0.1), NAC_PORT (8000), NAC_DISCOVERY_SUBNETS
-(comma separated, default private ranges), NAC_CONTROLLER_IPS.
+(comma separated, default private ranges), NAC_CONTROLLER_IPS, NAC_INTERNAL_ALLOWED_NETWORKS
+(source networks allowed to call /internal/*, e.g. the FreeRADIUS server; default localhost).
 """
 
 from __future__ import annotations
@@ -115,6 +116,9 @@ async def _serve(url: str, keys: dict[str, str]) -> None:
             "NAC_DISCOVERY_SUBNETS", "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
         ),
         controller_ips=os.environ.get("NAC_CONTROLLER_IPS", ""),
+        internal_allowed_networks=os.environ.get(
+            "NAC_INTERNAL_ALLOWED_NETWORKS", "127.0.0.1/32,::1/128"
+        ),
     )
     app = create_app(settings, redis=FakeAsyncRedis(decode_responses=True))
     server = uvicorn.Server(
