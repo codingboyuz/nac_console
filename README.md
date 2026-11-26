@@ -44,6 +44,15 @@ and saved to `backend/.localdev/ADMIN_PASSWORD.txt`. Keep `backend/.localdev/sec
 it holds the key that decrypts stored device credentials. For local use only - production
 runs on PostgreSQL / Redis / Celery (below). Set `NAC_DATABASE_URL` to use PostgreSQL locally.
 
+## Quick start (Linux / macOS)
+
+`./start.sh` does the same as `start.bat`: checks Python 3 and Node.js 20+, installs `uv`
+if needed (which fetches Python 3.12 itself when the system Python is older), runs
+`uv sync` / `npm install`, starts both services in the background and prints the URL and
+admin login. Logs: `backend/.localdev/logs/`. Stop with `./stop.sh`.
+`NAC_HOST=0.0.0.0 FRONTEND_HOST=0.0.0.0 ./start.sh` exposes both to the network;
+`NAC_INTERNAL_ALLOWED_NETWORKS=<freeradius-ip>/32` lets a FreeRADIUS server call the backend.
+
 ## Quick start (Docker)
 
 ```bash
