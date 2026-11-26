@@ -5,6 +5,7 @@
 #  backend SQLite fayli (backend/.localdev/nac.db) va xotiradagi Redis bilan ishlaydi.
 #
 #  Ishga tushirish:  ./start.sh          To'xtatish:  ./stop.sh
+#  ./start.sh --deps  o'rnatilgan asosiy kutubxonalar ro'yxatini har doim ko'rsatadi
 #  Loglar:           backend/.localdev/logs/{backend,frontend}.log
 #
 #  Sozlamalar (ixtiyoriy, muhit o'zgaruvchilari):
@@ -26,6 +27,16 @@ FRONTEND_PORT="${FRONTEND_PORT:-3000}"
 NAC_HOST="${NAC_HOST:-127.0.0.1}"
 FRONTEND_HOST="${FRONTEND_HOST:-127.0.0.1}"
 export NAC_HOST NAC_PORT="$BACKEND_PORT"
+# Kesh va loyiha turli disklarda bo'lsa ham uv ogohlantirmasin (nusxalab o'rnatadi).
+export UV_LINK_MODE="${UV_LINK_MODE:-copy}"
+SHOW_DEPS=0
+for arg in "$@"; do
+  case "$arg" in
+    --deps|-d) SHOW_DEPS=1 ;;
+    -h|--help) sed -n '2,16p' "$0"; exit 0 ;;
+    *) printf "Noma'lum parametr: %s  (./start.sh --help)\n" "$arg" >&2; exit 2 ;;
+  esac
+done
 
 if [ -t 1 ]; then R=$'\e[31m'; G=$'\e[32m'; Y=$'\e[33m'; B=$'\e[1m'; N=$'\e[0m'; else R=; G=; Y=; B=; N=; fi
 info() { printf ' %s\n' "$*"; }
@@ -80,14 +91,28 @@ if [ -z "$UV" ]; then
   fi
 fi
 
-step "[1/2] Backend kutubxonalari tekshirilmoqda - backend/.venv"
-[ -d "$BACKEND/.venv" ] || info "      Birinchi marta: .venv yaratilmoqda, bir necha daqiqa kuting..."
-(cd "$BACKEND" && $UV sync --quiet) || deps_fail
+indent() { sed 's/^/      /'; }
+DEPS_LOG="$(mktemp)"
+trap 'rm -f "$DEPS_LOG"' EXIT
 
-step "[2/2] Frontend kutubxonalari tekshirilmoqda - frontend/node_modules"
+step "[1/2] Backend kutubxonalari (Python) - backend/.venv"
+[ -d "$BACKEND/.venv" ] || info "      Birinchi marta: .venv yaratilmoqda, bir necha daqiqa kuting..."
+# uv har bir o'rnatilgan / yangilangan / o'chirilgan paketni "+ nom==versiya" ko'rinishida chiqaradi.
+if ! (cd "$BACKEND" && $UV sync --color never) 2>&1 | tee "$DEPS_LOG" | indent; then deps_fail; fi
+if [ "$SHOW_DEPS" = 1 ] || grep -qE '^ *[-+~] ' "$DEPS_LOG"; then
+  info "     Asosiy backend kutubxonalari (to'g'ridan-to'g'ri bog'liqliklar):"
+  (cd "$BACKEND" && $UV tree --depth 1 --frozen --color never 2>/dev/null) | tail -n +2 | indent || true
+fi
+echo
+
+step "[2/2] Frontend kutubxonalari (Node.js) - frontend/node_modules"
 [ -d "$FRONTEND/node_modules" ] || info "      Birinchi marta: kutubxonalar yuklanmoqda, bir necha daqiqa kuting..."
-(cd "$FRONTEND" && npm install --no-audit --no-fund --loglevel=error >/dev/null) || deps_fail
-info "      Kutubxonalar tayyor."
+if ! (cd "$FRONTEND" && npm install --no-audit --no-fund --color=false) 2>&1 | tee "$DEPS_LOG" | grep -v '^$' | indent; then deps_fail; fi
+if [ "$SHOW_DEPS" = 1 ] || grep -qE 'added|changed|removed' "$DEPS_LOG"; then
+  info "     Asosiy frontend kutubxonalari:"
+  (cd "$FRONTEND" && npm ls --depth=0 --color=false 2>/dev/null) | tail -n +2 | grep -v -e extraneous -e '^$' | indent || true
+fi
+info "      Kutubxonalar tayyor.  (To'liq ro'yxat har doim: ./start.sh --deps)"
 echo
 
 VENV_PY="$BACKEND/.venv/bin/python"
