@@ -1,0 +1,40 @@
+!ACC-TP-01
+#
+vlan 10
+ name "Users"
+#
+vlan 20
+ name "Voice"
+#
+vlan 100
+ name "MGMT"
+#
+hostname "ACC-TP-01"
+user name admin privilege admin secret 5 $1$J7K8L9M0$abcdefghijklmnopqrstu/
+enable password 7 0822455D0A16
+snmp-server community "S3cretRO" read-only "viewDefault"
+radius-server host 192.0.2.50 auth-port 1812 acct-port 1813 key 7 0822455D0A16544541
+ip dhcp snooping
+ip dhcp snooping vlan 10
+access-list create 500 name "MGMT-ONLY"
+access-list ip 500 rule 1 permit logging disable sip 192.0.2.0 sip-mask 255.255.255.0
+access-list ip 500 rule 5 deny logging disable
+access-list bind 500 interface vlan 100
+ip route 0.0.0.0 0.0.0.0 192.0.2.1
+ip route 10.30.0.0 255.255.0.0 192.0.2.1
+#
+interface gigabitEthernet 1/0/1
+  description "PC-101"
+  switchport general allowed vlan 10 untagged
+  switchport pvid 10
+#
+interface gigabitEthernet 1/0/25
+  description "UPLINK"
+  switchport general allowed vlan 10,20,100 tagged
+  switchport pvid 100
+  ip dhcp snooping trust
+#
+interface vlan 100
+  ip address 192.0.2.40 255.255.255.0
+#
+end

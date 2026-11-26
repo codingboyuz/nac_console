@@ -20,7 +20,7 @@ from app.domain.identity import Principal
 from app.domain.metrics import InterfaceCounters, interface_rates
 from app.models.device import Device
 from app.models.monitoring import MetricSample
-from app.network.parsers import parse_cpu_usage, parse_interface_brief, parse_memory_usage
+from app.network.platforms import Q, adapter_of
 from app.network.ports import DeviceDriver
 from app.repositories.uow import UnitOfWork
 from app.services.alert_service import AlertService
@@ -127,25 +127,26 @@ class MonitoringService:
     async def _poll_cli(
         self, principal: Principal | None, device: Device, scope: str
     ) -> list[Sample]:
-        commands = []
+        adapter = adapter_of(device)
+        queries: list[Q] = []
         if scope in {"cpu", "all"}:
-            commands += ["display cpu-usage", "display memory-usage"]
+            queries += [q for q in (Q.CPU, Q.MEMORY) if adapter.supports(q)]
         if scope in {"interfaces", "all"}:
-            commands.append("display interface brief")
+            queries.append(Q.INTERFACES_BRIEF)
 
-        def run(driver: DeviceDriver) -> dict[str, str]:
-            return {c: driver.run_show(c).output for c in commands}
+        def run(driver: DeviceDriver) -> dict[Q, str]:
+            return {q: driver.run_show(adapter.command(q)).output for q in queries}
 
         outputs = await self._collection.run(device, run, principal)
+        parsers = adapter.parsers
         samples: list[Sample] = []
-        if "display cpu-usage" in outputs:
+        if Q.CPU in outputs:
+            samples.append(Sample("cpu", parsers.parse_cpu_usage(outputs[Q.CPU]).current_percent))
+        if Q.MEMORY in outputs:
             samples.append(
-                Sample("cpu", parse_cpu_usage(outputs["display cpu-usage"]).current_percent)
+                Sample("memory", parsers.parse_memory_usage(outputs[Q.MEMORY]).used_percent)
             )
-            samples.append(
-                Sample("memory", parse_memory_usage(outputs["display memory-usage"]).used_percent)
-            )
-        for row in parse_interface_brief(outputs.get("display interface brief", "")):
+        for row in parsers.parse_interface_brief(outputs.get(Q.INTERFACES_BRIEF, "")):
             if not row.admin_down:
                 samples.append(Sample("if_oper", 1.0 if row.phy == "up" else 0.0, row.name))
             if row.in_util is not None and row.out_util is not None:

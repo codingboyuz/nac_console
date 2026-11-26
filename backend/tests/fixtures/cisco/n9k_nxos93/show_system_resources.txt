@@ -1,0 +1,10 @@
+Load average:   1 minute: 0.45   5 minutes: 0.52   15 minutes: 0.50
+Processes   :   812 total, 1 running
+CPU states  :   5.20% user,   2.10% kernel,   92.70% idle
+        CPU0 states  :   6.00% user,   2.00% kernel,   92.00% idle
+Memory usage:   24569356K total,   8123456K used,   16445900K free
+Kernel vmalloc:   0K total,   0K free
+Kernel buffers:   123456K Used
+Kernel cached :   2345678K Used
+
+Current memory status: OK

@@ -1,0 +1,15 @@
+
+!Command: show running-config interface Ethernet1/49
+!Running configuration last done at: Mon Nov 24 10:44:12 2026
+!Time: Tue Nov 25 09:00:00 2026
+
+version 9.3(10) Bios:version 07.69
+
+interface Ethernet1/49
+  description UPLINK-SPINE
+  switchport mode trunk
+  switchport trunk native vlan 100
+  switchport trunk allowed vlan 10,100
+  spanning-tree port type network
+  mtu 9216
+  no shutdown

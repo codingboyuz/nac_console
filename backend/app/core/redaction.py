@@ -37,6 +37,9 @@ SENSITIVE_KEYS = frozenset(
 )
 _SENSITIVE_FRAGMENTS = ("password", "secret", "token", "private_key", "community", "passphrase")
 
+# Huawei secret markers that precede the actual secret ("shared-key cipher <x>").
+_HUAWEI_MARKERS = r"cipher\b|irreversible-cipher\b|simple\b"
+
 # (pattern, replacement) pairs applied in order. Huawei configuration secrets appear as
 # "password cipher <x>", "irreversible-cipher <x>", "shared-key cipher <x>", SNMP communities
 # and usm-user keys; generic secrets as key=value, bearer tokens, JWTs and PEM blocks.
@@ -51,6 +54,46 @@ _RULES: tuple[tuple[re.Pattern[str], str], ...] = (
         re.compile(r"(?i)\b(password|passwd|secret|token|community|key)=([^\s&,;]+)"),
         rf"\1={REDACTED}",
     ),
+    # Cisco / TP-Link typed secrets: "secret 9 $9$..", "password 7 0822..", "key 7 ..",
+    # "key-string 7 ..". The type digit stays visible, the value is masked.
+    (
+        re.compile(
+            r"(?i)\b(password|secret|key|key-string|server-key|authentication-key|shared-key|"
+            r"pre-shared-key|md5)\s+([0-9])\s+(\"[^\"]*\"|\S+)"
+        ),
+        rf"\1 \2 {REDACTED}",
+    ),
+    # Cisco SMB / TP-Link: "password encrypted <x>", "key encrypted <x>".
+    (
+        re.compile(r"(?i)\b(password|secret|key)\s+(encrypted)\s+(\"[^\"]*\"|\S+)"),
+        rf"\1 \2 {REDACTED}",
+    ),
+    # Untyped "secret <x>" / "key-string <x>"; RADIUS/TACACS server keys on one line or as an
+    # indented "key <x>" inside a "radius server" block.
+    (
+        re.compile(r"(?i)\b(secret|key-string|server-key)\s+(?![0-9]\s)(\"[^\"]*\"|\S+)"),
+        rf"\1 {REDACTED}",
+    ),
+    # Huawei "radius-server shared-key cipher <x>" is left to the cipher rule below.
+    (
+        re.compile(
+            r"(?i)\b((?:radius|tacacs)(?:-server)?\b[^\n]*?\bkey)\s+"
+            rf"(?![0-9]\s|{_HUAWEI_MARKERS})(\"[^\"]*\"|\S+)"
+        ),
+        rf"\1 {REDACTED}",
+    ),
+    (
+        # "key <x>" as a whole line (RADIUS server block, generated plans); not "key chain".
+        re.compile(rf"(?im)^(\s*key)\s+(?![0-9]\s|chain\b|{_HUAWEI_MARKERS})(\"[^\"]*\"|\S+)\s*$"),
+        rf"\1 {REDACTED}",
+    ),
+    # SNMPv3 users (IOS / NX-OS / TP-Link): "auth sha <key> priv aes-128 <key>".
+    (re.compile(r"(?i)\b(auth\s+(?:md5|sha(?:-?\d+)?))\s+\S+"), rf"\1 {REDACTED}"),
+    (
+        re.compile(r"(?i)\b(priv\s+(?:aes-?(?:128|192|256)|aes|3des|des))\s+\S+"),
+        rf"\1 {REDACTED}",
+    ),
+    (re.compile(r"(?i)\b(priv)\s+(0x[0-9a-f]+)"), rf"\1 {REDACTED}"),
     (re.compile(r"(?i)\b(irreversible-cipher|cipher|simple)\s+\S+"), rf"\1 {REDACTED}"),
     (
         re.compile(r"(?i)\b(authentication-mode|privacy-mode)\s+(\S+)\s+(?!cipher\b)\S+"),
@@ -65,7 +108,7 @@ _RULES: tuple[tuple[re.Pattern[str], str], ...] = (
     (
         re.compile(
             r"(?i)\b(password|shared-key|authentication-key|pre-shared-key)"
-            r"\s+(?!cipher\b|irreversible-cipher\b|simple\b|\*\*\*)\S+"
+            r"\s+(?!cipher\b|irreversible-cipher\b|simple\b|\*\*\*|[0-9]\s+\*\*\*|encrypted\s+\*\*\*)\S+"
         ),
         rf"\1 {REDACTED}",
     ),

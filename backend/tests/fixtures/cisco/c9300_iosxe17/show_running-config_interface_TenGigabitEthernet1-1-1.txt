@@ -1,0 +1,11 @@
+Building configuration...
+
+Current configuration : 160 bytes
+!
+interface TenGigabitEthernet1/1/1
+ description UPLINK-CORE
+ switchport trunk native vlan 100
+ switchport trunk allowed vlan 10,20,100,999
+ switchport mode trunk
+ ip dhcp snooping trust
+end

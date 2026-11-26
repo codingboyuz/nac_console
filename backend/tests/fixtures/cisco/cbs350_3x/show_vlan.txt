@@ -1,0 +1,10 @@
+Created by: S-Static, G-GVRP, R-Radius Assigned VLAN, V-Voice VLAN
+
+VLAN        Name    Tagged Ports    UnTagged Ports  Created by
+-----  -----------  --------------  --------------  ----------
+1      default                      gi1/0/5-48,     S
+                                    te1/0/2-4
+10     Users        te1/0/1         gi1/0/1-2       S
+20     Voice        te1/0/1         gi1/0/3         S
+100    MGMT         te1/0/1                         S
+999    999          te1/0/1                         S

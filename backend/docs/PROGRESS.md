@@ -19,6 +19,13 @@ Re-read at the start of every session.
 | 10 | Monitoring, alerts, discovery | done |
 | 11 | NAC and RADIUS | done |
 | 12 | CLI, hardening, docs, delivery | done |
+| 13 | Multi-vendor platform abstraction | done |
+| 14 | Cisco IOS / IOS-XE | done |
+| 15 | Cisco NX-OS | done |
+| 16 | Cisco Small Business (CBS / SG) | done |
+| 17 | TP-Link JetStream / Omada switches (CLI) | done |
+| 18 | TP-Link Omada controller (API) | done (endpoints not lab-verified) |
+| 19 | Frontend: multi-vendor | done |
 
 ## Log
 
@@ -217,10 +224,112 @@ Re-read at the start of every session.
   config validation. `openapi.json` exported (OpenAPI 3.1.0, 106 paths).
 - Final local run: 633 passed (embedded PostgreSQL 16), ruff/black/mypy clean.
 
+### Phase 13 - Multi-vendor platform abstraction (ADR 0002)
+- `Platform` enum (huawei_vrp, huawei_vrpv8, cisco_ios, cisco_nxos, cisco_smb,
+  tplink_jetstream, tplink_omada) with vendor, commit model and rollback-timer kinds.
+- Migration 0009: `devices.platform` (backfilled: family CE -> huawei_vrpv8) and
+  `backups.platform`; downgrade refuses while non-Huawei devices exist.
+- `app/network/platforms`: `PlatformAdapter` + typed contracts (parsers, L2/ACL/routing/NAC
+  builders, config text) checked by mypy strict; Huawei adapters wrap the existing modules.
+- All services moved off hard-coded `display ...` text and direct builder/parser imports:
+  collection, VLAN, interface, MAC, ARP/DHCP, STP, routing (+ probes), ACL, NAC provisioning,
+  backup (normalize/hash/sanitize/diff/restore), monitoring CLI poll, change and command
+  services (per-platform classifier + lockout guard).
+- Change pipeline: rollback timers dispatched by kind; platforms without a device-side timer
+  refuse lockout overrides and timed changes. Restore refuses cross-platform backups.
+- Device API: `platform` on create/patch/out, vendor derived, family only for Huawei and used
+  to pick VRP V5/V8; factory picks the driver from the platform adapter.
+- Security fix: redaction now masks Cisco/TP-Link typed secrets (`secret 9`, `password 7`,
+  `key 7`, `key-string`, RADIUS/TACACS keys, SNMPv3 auth/priv keys) without regressing
+  Huawei forms (regression found and fixed: `radius-server shared-key cipher <x>`).
+- Full suite: 671 passed; ruff, black, mypy strict clean.
+
+### Phase 14 - Cisco IOS / IOS-XE (Catalyst)
+- Shared `NetmikoCliDriver` extracted from the Huawei driver (pinned host keys, retries, show);
+  `CiscoIosDriver` (+ Telnet): enable via the credential's super password, 'configure
+  terminal', 'write memory', rollback timer = 'configure terminal revert timer N' +
+  'configure confirm' (archive required; refusal reported as unsupported_capability).
+- `CiscoIosClassifier` (deny by default; multi-word 'sh ip int br' expansion; saves allowed in
+  exec; escalation on uplinks/mgmt SVI/management VLAN/deny-any) and `CiscoLockoutGuard`
+  (shutdown/no ip address on the management path, trunk pruning of the mgmt VLAN, ACLs bound
+  via 'access-class'/'ip access-group'; ACL names compared case-sensitively).
+- Parsers (version, VLAN brief, interfaces status/detail/config, MAC, ARP, DHCP snooping,
+  routes incl. ECMP/BGP, OSPF, BGP, STP, CPU, memory, ACLs) with C9300 IOS-XE 17.9 fixtures.
+- Builders: VLANs, port modes (trunk 'allowed vlan' semantics: absent = all), trunk add/remove,
+  admin/description/speed, static/drop MAC, STP, DHCP snooping, named ACLs with canonicalised
+  rule-level diff, static/OSPF/BGP/RIP/VRRP/route-map, 802.1X+MAB+CoA provisioning (DANGEROUS,
+  with the 'aaa new-model' login caveat), config text (volatile headers, 'no' restore plan).
+- Cisco SNMP entity collector (CISCO-PROCESS / MEMORY-POOL / ENVMON MIBs); CoA sends the
+  Calling-Station-Id in the NAS vendor's format (Huawei vs IETF).
+- Redaction additions: unindented 'key <x>' and 'server-key <x>' (found while testing plans).
+- Stateful IOS-XE mock emulator; e2e over real Netmiko: facts, reads, VLAN/port changes with
+  'write memory', classification/RBAC, lockout + ADMIN override via revert timer and
+  'configure confirm', sanitized backups.
+
+### Phase 15 - Cisco NX-OS (Nexus)
+- `CiscoNxosDriver` (no enable, 'copy running-config startup-config', no rollback timer ->
+  lockout overrides refused), NX-OS parsers (version, interface detail, MAC, ARP, routes,
+  system resources, ACLs; others shared with IOS), builders (port type edge, rapid-pvst/mst,
+  'feature' enablement, CIDR ACLs, port vs routed ACL application, per-interface OSPF,
+  nested BGP neighbours, VRRP sub-mode, dot1x + MAC bypass), classifier/lockout extensions
+  ('no feature' DANGEROUS, 'ip port access-group' on protected ports).
+- Fixtures: Nexus 93180YC-EX NX-OS 9.3(10); e2e over real Netmiko 'cisco_nxos'.
+- Lockout fix found by tests: NX-OS CIDR ACL sources are parsed instead of assumed to match.
+
+### Phase 16 - Cisco Small Business (CBS250/350, SG300/350/550)
+- `CiscoSmbDriver` (Netmiko `cisco_s300`, save via `write` + confirmation, no rollback timer ->
+  lockout overrides refused); facts from 'show version' + 'show system'.
+- Parsers for the column-based SMB outputs (port ranges expanded, ACLs keyed by ace-priority,
+  management access-class); builders: 'vlan database', trunk add/remove, hybrid -> general
+  mode, ace-priority ACLs with 'service-acl', static + RIP + VRRP routing (OSPF/BGP refused),
+  802.1X without CoA; config text skips the config-file header and SSD control block.
+- Classifier/lockout: 'service-acl input' on protected ports, management access-class.
+- Fixtures: CBS350 3.x; e2e over real Netmiko 'cisco_s300'.
+
+### Phase 17 - TP-Link JetStream / Omada switches over CLI (T1600G/T2600G/SG3xxx)
+- `TplinkJetstreamDriver` (Netmiko `tplink_jetstream`: enable / enable-admin, 'configure',
+  'copy running-config startup-config'); rollback timer = 'reboot-schedule in N', sent as the
+  first line of the change session and cancelled after verification.
+- Interfaces spelled 'gigabitEthernet 1/0/1' via the adapter's `interface_cli` hook.
+- General-port VLAN model (untagged + PVID = access, tagged = trunk), 'access-list create /
+  ip ... rule / bind' ACLs (ids 500-999, ingress only), static routes + OSPF (L3 models),
+  802.1X/MAB with 'dot1x vlan-assignment' (no CoA documented).
+- TP-Link SNMP driver (IF-MIB + TPLINK-SYSMONITOR-MIB CPU/memory).
+- Found by tests: Netmiko's TP-Link 'exit_config_mode' leaves prompts buffered so the next
+  'configure' failed - the driver clears the buffer before each session; the 'reboot' rule
+  also matched 'reboot-schedule'.
+- Fixtures are SYNTHETIC (TP-Link guides show no output): replace with real captures.
+
+### Phase 18 - TP-Link Omada Controller (Open API)
+- New `api` device protocol and `omada_api` credential kind (client id/secret, controller URL,
+  Omada ID, site) - migration 0010 rewrites the CHECK constraints.
+- The device row is the switch (mgmt_ip = its own IP); the driver finds it in the site by IP.
+- Plans use a small readable change language ('vlan create 300 name LAB', 'port 5 native 300',
+  'port 25 tagged 10,100', 'port 25 disable'); only `drivers/omada_api.py` maps it to REST
+  calls, so audit, classifier and lockout work unchanged. Read queries: 'GET switch|ports|
+  port <n>|networks|clients|config'.
+- Backups are JSON snapshots (ports with resolved VLANs + networks); restore re-applies them.
+- ACLs, routing, 802.1X, STP, DHCP snooping, static MACs: refused (managed in the controller).
+- No device-side rollback timer: lockout overrides are refused.
+- Verified: token flow, AccessToken header, sites list, envelope. NOT verified: device, port,
+  LAN network and client endpoints/bodies (see HARDWARE_VALIDATION.md).
+
+### Phase 19 - Frontend multi-vendor
+- `GET /api/v1/platforms` (catalogue: availability, transports, commit model, rollback timer,
+  hybrid ports) and a `platform` filter on `GET /api/v1/devices`.
+- UI: platform picker grouped by vendor (unavailable platforms disabled), transports filtered
+  per platform, Huawei-only family, enable-secret wording for Cisco, vendor badges and filter,
+  platform label on the device page, vendor-specific terminal quick commands, hybrid mode only
+  for Huawei, platform choice when adopting discovered devices.
+- Full suite: 753 passed; frontend lint/typecheck/build clean.
+- Verified CLI syntax for phases 16-17 recorded in docs/vendors/cisco_smb_and_tplink.md.
+- Omada: 'omada_api' credential form, 'api' protocol, credential list filtered by protocol,
+  TP-Link and Omada quick commands, reboot-schedule shown as the TP-Link rollback timer.
+
 ## Open issues
 - Docker / compose cannot be executed on the build host (no Docker). See ASSUMPTIONS A1.
 - A real Celery worker against a real Redis broker was not run on the build host (no Redis); the task runs eagerly in tests.
 
 ## Next step
-- All phases complete. Remaining work = items in HARDWARE_VALIDATION.md and running the Docker
-  stack / CI on infrastructure with Docker.
+- Lab validation of Cisco SMB, TP-Link CLI and the Omada Open API endpoints
+  (HARDWARE_VALIDATION.md), replacing the synthetic TP-Link fixtures with real captures.

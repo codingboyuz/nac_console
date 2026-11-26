@@ -13,28 +13,25 @@ from app.network.ports import ConnectionParams, DeviceDriver
 DriverBuilder = Callable[[ConnectionParams], DeviceDriver]
 
 
-def _ssh(params: ConnectionParams) -> DeviceDriver:
-    from app.network.drivers.huawei_ssh import HuaweiCliDriver
+def _by_platform(transport: str) -> DriverBuilder:
+    """Builder that picks the platform adapter's driver for one transport."""
 
-    return HuaweiCliDriver(params)
+    def build(params: ConnectionParams) -> DeviceDriver:
+        from app.network.platforms import adapter_for
 
+        driver = adapter_for(params.platform).drivers.get(transport)
+        if driver is None:
+            raise UnsupportedCapability(
+                f"{params.platform.label} cannot be managed over {transport}"
+            )
+        return driver(params)
 
-def _telnet(params: ConnectionParams) -> DeviceDriver:
-    from app.network.drivers.huawei_telnet import HuaweiTelnetDriver
-
-    return HuaweiTelnetDriver(params)
-
-
-def _netconf(params: ConnectionParams) -> DeviceDriver:
-    from app.network.drivers.huawei_netconf import HuaweiNetconfDriver
-
-    return HuaweiNetconfDriver(params)
+    return build
 
 
-def _snmp(params: ConnectionParams) -> DeviceDriver:
-    from app.network.drivers.huawei_snmp import HuaweiSnmpDriver
-
-    return HuaweiSnmpDriver(params)
+_ssh, _telnet, _netconf, _snmp, _api = (
+    _by_platform(t) for t in ("ssh", "telnet", "netconf", "snmp", "api")
+)
 
 
 DEFAULT_BUILDERS: dict[DeviceProtocol, DriverBuilder] = {
@@ -42,6 +39,7 @@ DEFAULT_BUILDERS: dict[DeviceProtocol, DriverBuilder] = {
     DeviceProtocol.TELNET: _telnet,
     DeviceProtocol.NETCONF: _netconf,
     DeviceProtocol.SNMP: _snmp,
+    DeviceProtocol.API: _api,
 }
 
 

@@ -14,6 +14,7 @@ from app.core.rbac import Permission, Role
 from app.domain.commands.categories import Classification, CommandCategory
 from app.domain.commands.classifier import CommandClassifier
 from app.domain.identity import Principal, RequestContext
+from app.network.platforms import adapter_of
 from app.network.ports import CommandOutput, DeviceDriver, DeviceFacts
 from app.services.audit_service import AuditService
 from app.services.confirmation_service import ConfirmationService, payload_hash
@@ -71,13 +72,14 @@ class CommandService:
         self._connector = connector
         self._confirm = confirmations
         self._audit = audit
-        self._classifier = classifier or CommandClassifier()
+        self._classifier = classifier  # explicit override (tests); else per-platform rules
 
     async def execute(
         self, principal: Principal, ctx: RequestContext, device_id: uuid.UUID, req: CommandRequest
     ) -> CommandResult:
         device = await self._devices.get(principal, device_id)
-        classification = self._classifier.classify_exec(req.command)
+        classifier = self._classifier or adapter_of(device).classifier
+        classification = classifier.classify_exec(req.command)
         command = classification.lines[0].line
         category = classification.category
 

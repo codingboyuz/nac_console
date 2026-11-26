@@ -133,3 +133,33 @@ class HuaweiSnmpDriver(DriverBase):
         except DeviceError:
             self._alive = False
         return self._alive
+
+
+class CiscoSnmpDriver(HuaweiSnmpDriver):
+    """Same IF-MIB polling; Cisco CPU/memory/environment MIBs for entity sensors."""
+
+    def entity(self) -> EntitySnapshot:
+        from app.network.snmp.collector import collect_entity_cisco
+
+        return self._run(collect_entity_cisco)
+
+    def capabilities(self) -> DeviceFacts:
+        snap = self.system()
+        return DeviceFacts(
+            family=DeviceFamily.UNKNOWN,
+            vrp_version=None,
+            software_version=None,
+            model=None,
+            hostname=snap.sys_name,
+            uptime_seconds=snap.uptime_seconds,
+            capabilities={"snmp": True, "transport": "snmp"},
+        )
+
+
+class TplinkSnmpDriver(CiscoSnmpDriver):
+    """IF-MIB polling plus the TP-Link system monitor MIB."""
+
+    def entity(self) -> EntitySnapshot:
+        from app.network.snmp.collector import collect_entity_tplink
+
+        return self._run(collect_entity_tplink)

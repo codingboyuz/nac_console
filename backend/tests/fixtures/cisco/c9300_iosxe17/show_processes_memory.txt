@@ -1,0 +1,6 @@
+Processor Pool Total: 1349734480 Used:  396117936 Free:  953616544
+reserve P Pool Total:     102404 Used:         88 Free:     102316
+ lsmpi_io Pool Total:    6295128 Used:    6294296 Free:        832
+
+ PID TTY  Allocated      Freed    Holding    Getbufs    Retbufs Process
+   0   0  680128232  278063392  387329592          0          0 *Init*

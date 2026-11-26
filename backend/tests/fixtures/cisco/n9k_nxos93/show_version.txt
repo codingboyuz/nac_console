@@ -1,0 +1,24 @@
+Cisco Nexus Operating System (NX-OS) Software
+TAC support: http://www.cisco.com/tac
+Documents: http://www.cisco.com/en/US/products/ps9372/tsd_products_support_series_home.html
+Copyright (c) 2002-2022, Cisco Systems, Inc. All rights reserved.
+
+Software
+  BIOS: version 07.69
+  NXOS: version 9.3(10)
+  BIOS compile time:  04/08/2021
+  NXOS image file is: bootflash:///nxos.9.3.10.bin
+  NXOS compile time:  6/28/2022 11:00:00 [06/28/2022 20:32:09]
+
+
+Hardware
+  cisco Nexus9000 C93180YC-EX chassis
+  Intel(R) Xeon(R) CPU  @ 1.80GHz with 24569356 kB of memory.
+  Processor Board ID FDO21110ABC
+
+  Device name: DC-LEAF-01
+  bootflash:   53298520 kB
+Kernel uptime is 120 day(s), 3 hour(s), 14 minute(s), 2 second(s)
+
+Last reset at 123456 usecs after Tue Jul 12 10:00:00 2026
+  Reason: Reset Requested by CLI command reload

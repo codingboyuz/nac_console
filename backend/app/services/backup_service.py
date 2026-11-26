@@ -13,12 +13,13 @@ from app.core.database import Database
 from app.core.events import EventBus
 from app.core.exceptions import AppError, Conflict, Forbidden, NotFound
 from app.core.rbac import Permission, Role
-from app.domain import config_text
 from app.domain.commands.categories import CommandCategory
 from app.domain.identity import Principal, RequestContext
+from app.domain.platforms import Platform
 from app.models.backup import Backup, BackupSource, BackupTrigger
 from app.models.device import Device
 from app.network.builders.plan import ConfigPlan
+from app.network.platforms import Q, adapter_of
 from app.repositories.base import ListQuery, Page, Repository
 from app.repositories.uow import UnitOfWork
 from app.services.audit_service import AuditService
@@ -26,10 +27,7 @@ from app.services.change_service import ChangeOptions, ChangeResult, ChangeServi
 from app.services.collection_service import CollectionService
 from app.services.device_service import DeviceService
 
-_COMMANDS = {
-    BackupSource.CURRENT: "display current-configuration",
-    BackupSource.SAVED: "display saved-configuration",
-}
+_QUERIES = {BackupSource.CURRENT: Q.RUNNING_CONFIG, BackupSource.SAVED: Q.SAVED_CONFIG}
 
 
 class BackupRepository(Repository[Backup]):
@@ -101,7 +99,7 @@ class BackupService:
     ) -> tuple[Backup, bool]:
         """Return (backup, created). Unchanged configs return the previous version."""
         try:
-            text = await self._collection.show(device, _COMMANDS[source], principal)
+            text = await self._collection.query(device, _QUERIES[source], principal)
         except AppError as exc:
             row = Backup(
                 device_id=device.id,
@@ -115,12 +113,13 @@ class BackupService:
             if strict:
                 raise
             return row, True
-        digest = config_text.config_hash(text)
+        cfg = adapter_of(device).config
+        digest = cfg.config_hash(text)
         latest = await self._latest(device.id, source)
         if latest is not None and latest.sha256 == digest:
             return latest, False
         backup_id = uuid.uuid4()
-        normalized = config_text.normalize(text)
+        normalized = cfg.normalize(text)
         row = Backup(
             id=backup_id,
             device_id=device.id,
@@ -130,8 +129,9 @@ class BackupService:
             sha256=digest,
             size=len(normalized.encode()),
             family=device.family.value,
+            platform=adapter_of(device).platform.value,
             vrp_version=device.vrp_version,
-            content=config_text.sanitize(text),
+            content=cfg.sanitize(text),
             content_ciphertext=self._vault.encrypt(normalized.encode(), _aad(backup_id)),
             key_id=self._vault.active_kid,
             change_operation=change_operation,
@@ -189,7 +189,8 @@ class BackupService:
         old, new = await self.get(principal, a), await self.get(principal, b)
         if old.device_id != new.device_id:
             raise Conflict("backups belong to different devices")
-        return config_text.unified_diff(
+        device = await self._devices.get(principal, old.device_id)
+        return adapter_of(device).config.unified_diff(
             old.content or "",
             new.content or "",
             old_name=f"backup:{old.id}",
@@ -231,14 +232,15 @@ class BackupService:
     async def drift(self, principal: Principal, device_id: uuid.UUID) -> DriftReport:
         device = await self._devices.get(principal, device_id)
         baseline = await self._baseline(device.id)
-        running = await self._collection.show(device, "display current-configuration", principal)
+        running = await self._collection.query(device, Q.RUNNING_CONFIG, principal)
         if baseline is None:
             return DriftReport(device.id, None, False, "")
-        drifted = config_text.config_hash(running) != baseline.sha256
+        cfg = adapter_of(device).config
+        drifted = cfg.config_hash(running) != baseline.sha256
         diff = (
-            config_text.unified_diff(
+            cfg.unified_diff(
                 baseline.content or "",
-                config_text.sanitize(running),
+                cfg.sanitize(running),
                 old_name="baseline",
                 new_name="running",
             )
@@ -268,18 +270,26 @@ class BackupService:
         device = await self._devices.get(principal, row.device_id)
         if row.status != "SUCCESS" or row.source is not BackupSource.CURRENT:
             raise Conflict("only successful current-configuration backups can be restored")
-        if row.family != device.family.value or (
-            row.vrp_version and device.vrp_version and row.vrp_version != device.vrp_version
+        adapter = adapter_of(device)
+        backup_platform = row.platform or Platform.HUAWEI_VRP.value
+        same_platform = backup_platform == adapter.platform.value or (
+            row.platform is None and adapter.platform.is_huawei
+        )
+        if (
+            not same_platform
+            or row.family != device.family.value
+            or (row.vrp_version and device.vrp_version and row.vrp_version != device.vrp_version)
         ):
             raise Conflict(
-                f"backup was taken on {row.family}/{row.vrp_version}, device is "
-                f"{device.family.value}/{device.vrp_version}; refusing restore"
+                f"backup was taken on {backup_platform} {row.family}/{row.vrp_version}, device "
+                f"is {adapter.platform.value} {device.family.value}/{device.vrp_version}; "
+                "refusing restore"
             )
-        running = await self._collection.show(device, "display current-configuration", principal)
+        running = await self._collection.query(device, Q.RUNNING_CONFIG, principal)
         original = self.original(row)
-        plan_text = config_text.restore_plan(running, original)
-        diff = config_text.unified_diff(
-            config_text.sanitize(running),
+        plan_text = adapter.config.restore_plan(running, original)
+        diff = adapter.config.unified_diff(
+            adapter.config.sanitize(running),
             row.content or "",
             old_name="running",
             new_name=f"backup:{row.id}",

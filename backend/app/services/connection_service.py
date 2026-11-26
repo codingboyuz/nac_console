@@ -22,6 +22,7 @@ from app.domain.identity import Principal
 from app.models.device import Device, SshHostKey
 from app.network.factory import DeviceConnectionFactory
 from app.network.hostkeys import fetch_host_key
+from app.network.platforms import adapter_of
 from app.network.ports import ConnectionParams, DeviceDriver, HostKey
 from app.repositories.devices import CredentialRepository, DeviceRepository, HostKeyRepository
 from app.repositories.uow import UnitOfWork
@@ -60,7 +61,9 @@ class DeviceConnector:
             raise ValidationFailed("device has no credential configured")
         async with UnitOfWork(self._db) as uow:
             cred = await uow.repo(CredentialRepository).get_or_404(cred_id)
-        if device.protocol is not DeviceProtocol.SNMP:
+        if device.protocol is DeviceProtocol.API:
+            CredentialService.ensure_kind(cred, CredentialKind.OMADA_API)
+        elif device.protocol is not DeviceProtocol.SNMP:
             CredentialService.ensure_kind(cred, CredentialKind.CLI)
         return self._credentials.resolve_row(cred)
 
@@ -73,7 +76,7 @@ class DeviceConnector:
         if device.protocol in _SSH_TRANSPORTS and strict:
             pinned = await self._verify_host_key(device, principal)
         snmp: dict[str, object] = {}
-        if secret is not None and secret.kind is not CredentialKind.CLI:
+        if secret is not None and secret.kind in {CredentialKind.SNMP_V2C, CredentialKind.SNMP_V3}:
             snmp = {"kind": secret.kind.value, "secret": secret}
         return ConnectionParams(
             device_id=str(device.id),
@@ -81,6 +84,7 @@ class DeviceConnector:
             port=device.port,
             protocol=device.protocol,
             family=device.family,
+            platform=adapter_of(device).platform,
             username=secret.username if secret else None,
             password=secret.password if secret else None,
             private_key=secret.private_key if secret else None,
@@ -91,6 +95,7 @@ class DeviceConnector:
             pinned_host_key=pinned,
             strict_host_key=strict,
             snmp=snmp,
+            api=dict(secret.api) if secret is not None else {},
         )
 
     async def _verify_host_key(self, device: Device, principal: Principal | None) -> HostKey:
@@ -160,6 +165,7 @@ class DeviceConnector:
             port=device.snmp_port,
             protocol=DeviceProtocol.SNMP,
             family=device.family,
+            platform=adapter_of(device).platform,
             timeout=min(device.timeout, 10),
             snmp={"kind": secret.kind.value, "secret": secret},
         )

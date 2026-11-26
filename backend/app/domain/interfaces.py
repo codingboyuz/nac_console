@@ -1,8 +1,12 @@
-"""Huawei interface name normalization - the single place that knows naming variants.
+"""Interface name normalization - the single place that knows naming variants (all vendors).
 
-S-series (VRP V200R): GigabitEthernet0/0/1, XGigabitEthernet0/0/1, Ethernet0/0/1, MEth0/0/1.
-CE-series (VRP V8):  10GE1/0/1, 25GE1/0/1, 40GE1/0/1, 100GE1/0/1, GE1/0/1, MEth0/0/0.
-Logical:             Eth-Trunk1, Vlanif100, LoopBack0, NULL0, Tunnel0/0/1, Nve1.
+Huawei S (VRP V5):  GigabitEthernet0/0/1, XGigabitEthernet0/0/1, Ethernet0/0/1, MEth0/0/1.
+Huawei CE (VRP V8): 10GE1/0/1, 25GE1/0/1, 40GE1/0/1, 100GE1/0/1, GE1/0/1, MEth0/0/0.
+Cisco IOS/IOS-XE:   GigabitEthernet1/0/1 (Gi), TenGigabitEthernet1/1/1 (Te), FastEthernet0/1,
+                    TwentyFiveGigE, FortyGigabitEthernet, HundredGigE, Port-channel1, Vlan10.
+Cisco NX-OS:        Ethernet1/1, port-channel1, Vlan10, mgmt0.
+TP-Link JetStream:  Gi1/0/1 / "gigabitEthernet 1/0/1", Te1/0/25, port-channel 1.
+Logical (Huawei):   Eth-Trunk1, Vlanif100, LoopBack0, NULL0, Tunnel0/0/1, Nve1.
 """
 
 from __future__ import annotations
@@ -35,6 +39,31 @@ _ALIASES: dict[str, str] = {
     "null": "NULL",
     "tunnel": "Tunnel",
     "nve": "Nve",
+    # Cisco / TP-Link
+    "fastethernet": "FastEthernet",
+    "fa": "FastEthernet",
+    "twogigabitethernet": "TwoGigabitEthernet",
+    "tw": "TwoGigabitEthernet",
+    "fivegigabitethernet": "FiveGigabitEthernet",
+    "fi": "FiveGigabitEthernet",
+    "tengigabitethernet": "TenGigabitEthernet",
+    "ten-gigabitethernet": "TenGigabitEthernet",
+    "te": "TenGigabitEthernet",
+    "twentyfivegige": "TwentyFiveGigE",
+    "twe": "TwentyFiveGigE",
+    "fortygigabitethernet": "FortyGigabitEthernet",
+    "fo": "FortyGigabitEthernet",
+    "hundredgige": "HundredGigE",
+    "hu": "HundredGigE",
+    "appgigabitethernet": "AppGigabitEthernet",
+    "ap": "AppGigabitEthernet",
+    "port-channel": "Port-channel",
+    "portchannel": "Port-channel",
+    "po": "Port-channel",
+    "vlan": "Vlan",
+    "vl": "Vlan",
+    "mgmt": "mgmt",
+    "lo": "LoopBack",
 }
 
 _PHYSICAL = {
@@ -48,7 +77,18 @@ _PHYSICAL = {
     "200GE",
     "400GE",
     "Ethernet",
+    "FastEthernet",
+    "TwoGigabitEthernet",
+    "FiveGigabitEthernet",
+    "TenGigabitEthernet",
+    "TwentyFiveGigE",
+    "FortyGigabitEthernet",
+    "HundredGigE",
+    "AppGigabitEthernet",
 }
+_LAG = {"Eth-Trunk", "Port-channel"}
+_MANAGEMENT = {"MEth", "mgmt"}
+_ROUTED_VLAN = {"Vlanif", "Vlan"}
 _NAME_RE = re.compile(
     r"^\s*(?P<type>[A-Za-z][A-Za-z-]*|\d{2,3}[Gg][Ee])\s*(?P<num>\d+(?:/\d+){0,3}(?:\.\d+)?)\s*$"
 )
@@ -73,15 +113,16 @@ class InterfaceName:
 
     @property
     def is_management(self) -> bool:
-        return self.kind == "MEth"
+        return self.kind in _MANAGEMENT
 
     @property
     def is_lag(self) -> bool:
-        return self.kind == "Eth-Trunk"
+        return self.kind in _LAG
 
     @property
     def vlanif_id(self) -> int | None:
-        return int(self.number) if self.kind == "Vlanif" else None
+        """VLAN of a routed VLAN interface (Huawei Vlanif / Cisco Vlan)."""
+        return int(self.number) if self.kind in _ROUTED_VLAN else None
 
 
 def parse_interface(name: str) -> InterfaceName:
@@ -93,9 +134,9 @@ def parse_interface(name: str) -> InterfaceName:
     if kind is None:
         raise InvalidInterfaceName(f"unknown interface type: {match.group('type')!r}")
     number = match.group("num")
-    if kind == "Vlanif" and not (number.isdigit() and 1 <= int(number) <= 4094):
-        raise InvalidInterfaceName("Vlanif number must be 1-4094")
-    if kind in _PHYSICAL | {"MEth", "Tunnel"} and "/" not in number:
+    if kind in _ROUTED_VLAN and not (number.isdigit() and 1 <= int(number) <= 4094):
+        raise InvalidInterfaceName(f"{kind} number must be 1-4094")
+    if kind in _PHYSICAL | {"MEth"} and "/" not in number:
         raise InvalidInterfaceName(f"{kind} requires slot/port numbering")
     return InterfaceName(kind, number)
 

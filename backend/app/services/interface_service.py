@@ -10,8 +10,8 @@ from app.core.database import Database
 from app.domain.identity import Principal, RequestContext
 from app.domain.interfaces import normalize_interface
 from app.models.network_state import Interface
-from app.network.builders import cli_l2
-from app.network.parsers import InterfaceDetail, parse_interface_detail
+from app.network.parsers import InterfaceDetail
+from app.network.platforms import Q, adapter_of
 from app.repositories.uow import UnitOfWork
 from app.services.change_service import ChangeOptions, ChangeResult, ChangeService
 from app.services.collection_service import CollectionService
@@ -47,8 +47,8 @@ class InterfaceService(L2Base):
     ) -> InterfaceDetail | None:
         device = await self._device(principal, device_id)
         name = normalize_interface(interface)
-        out = await self._collection.show(device, f"display interface {name}", principal)
-        found = parse_interface_detail(out)
+        out = await self._collection.query(device, Q.INTERFACE, principal, name=name)
+        found = adapter_of(device).parsers.parse_interface_detail(out)
         return found[0] if found else None
 
     async def set_admin_state(
@@ -62,7 +62,7 @@ class InterfaceService(L2Base):
     ) -> ChangeResult:
         device = await self._device(principal, device_id)
         current = await self.interface_config(principal, device, interface)
-        plan = cli_l2.set_admin_state(interface, enabled, current)
+        plan = adapter_of(device).l2.set_admin_state(interface, enabled, current)
         return await self._apply(principal, ctx, device, plan, options)
 
     async def set_description(
@@ -76,7 +76,7 @@ class InterfaceService(L2Base):
     ) -> ChangeResult:
         device = await self._device(principal, device_id)
         current = await self.interface_config(principal, device, interface)
-        plan = cli_l2.set_description(interface, description, current)
+        plan = adapter_of(device).l2.set_description(interface, description, current)
         return await self._apply(principal, ctx, device, plan, options)
 
     async def set_speed_duplex(
@@ -91,5 +91,5 @@ class InterfaceService(L2Base):
         options: ChangeOptions,
     ) -> ChangeResult:
         device = await self._device(principal, device_id)
-        plan = cli_l2.set_speed_duplex(interface, speed, duplex, auto)
+        plan = adapter_of(device).l2.set_speed_duplex(interface, speed, duplex, auto)
         return await self._apply(principal, ctx, device, plan, options)

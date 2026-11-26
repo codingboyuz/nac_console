@@ -1,0 +1,21 @@
+Port     InUcastPkts InMcastPkts InBcastPkts InOctets
+-------- ----------- ----------- ----------- ------------
+gi1/0/1  1234567     1234        2345        987654321
+
+Port     OutUcastPkts OutMcastPkts OutBcastPkts OutOctets
+-------- ------------ ------------ ------------ ------------
+gi1/0/1  2345678      120          35           1876543210
+
+FCS Errors: 2
+Single Collision Frames: 0
+Multiple Collision Frames: 0
+SQE Test Errors: 0
+Deferred Transmissions: 0
+Late Collisions: 0
+Excessive Collisions: 0
+Carrier Sense Errors: 0
+Oversize Packets: 0
+Internal MAC Rx Errors: 1
+Symbol Errors: 0
+Received Pause Frames: 0
+Transmitted Pause Frames: 0

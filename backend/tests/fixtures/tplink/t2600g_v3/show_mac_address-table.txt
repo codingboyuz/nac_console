@@ -1,0 +1,8 @@
+MAC Address        VLAN    Port      Type      Aging
+-----------------  ------  --------  --------  -----
+00:e0:fc:12:34:56  10      Gi1/0/1   dynamic   Aging
+3c:52:82:aa:01:01  10      Gi1/0/2   dynamic   Aging
+00:04:f2:bb:03:03  20      Gi1/0/3   dynamic   Aging
+00:11:22:33:44:55  100     Gi1/0/25  config    No-Aging
+
+Total MAC Addresses for this criterion: 4

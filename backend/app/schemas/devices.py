@@ -18,6 +18,7 @@ from app.domain.devices import (
     HostKeyStatus,
 )
 from app.domain.interfaces import InvalidInterfaceName, normalize_interface
+from app.domain.platforms import Platform
 from app.schemas.common import ApiModel
 
 _HOSTNAME = r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
@@ -37,6 +38,10 @@ class _DeviceFields(ApiModel):
     hostname: str = Field(pattern=_HOSTNAME, examples=["SW-CORE-01"])
     mgmt_ip: IPvAnyAddress = Field(examples=["192.0.2.10"])
     model: str | None = Field(default=None, max_length=64)
+    platform: Platform = Field(
+        default=Platform.HUAWEI_VRP,
+        description="Vendor platform: selects the driver, CLI dialect and builders.",
+    )
     family: DeviceFamily = DeviceFamily.UNKNOWN
     vrp_version: str | None = Field(default=None, max_length=64)
     protocol: DeviceProtocol = DeviceProtocol.SSH
@@ -91,6 +96,7 @@ class DeviceUpdate(ApiModel):
     hostname: str | None = Field(default=None, pattern=_HOSTNAME)
     mgmt_ip: IPvAnyAddress | None = None
     model: str | None = Field(default=None, max_length=64)
+    platform: Platform | None = None
     family: DeviceFamily | None = None
     vrp_version: str | None = Field(default=None, max_length=64)
     protocol: DeviceProtocol | None = None
@@ -126,6 +132,7 @@ class DeviceOut(ApiModel):
     hostname: str
     mgmt_ip: str
     vendor: str
+    platform: Platform
     model: str | None
     family: DeviceFamily
     vrp_version: str | None
@@ -185,9 +192,23 @@ class CredentialCreate(ApiModel):
     auth_key: SecretStr | None = Field(default=None, min_length=8, max_length=128)
     priv_protocol: SnmpPrivProto | None = None
     priv_key: SecretStr | None = Field(default=None, min_length=8, max_length=128)
+    # omada_api: username = client_id, password = client_secret
+    controller_url: str | None = Field(
+        default=None, max_length=255, pattern=r"^https?://[A-Za-z0-9.\-\[\]:]+(:\d+)?/?$"
+    )
+    omadac_id: str | None = Field(default=None, max_length=64, pattern=r"^[A-Za-z0-9]+$")
+    omada_site: str | None = Field(default=None, max_length=128)
+    verify_tls: bool = True
 
     @model_validator(mode="after")
     def _shape(self) -> CredentialCreate:
+        if self.kind is CredentialKind.OMADA_API:
+            if not (self.username and self.password and self.controller_url and self.omadac_id):
+                raise ValueError(
+                    "omada_api credentials need username (client_id), password (client_secret), "
+                    "controller_url and omadac_id"
+                )
+            return self
         if self.kind is CredentialKind.CLI:
             if not self.username or not (self.password or self.private_key):
                 raise ValueError("cli credentials need username and password or private_key")
@@ -224,6 +245,9 @@ class CredentialOut(ApiModel):
     secret_fields: list[str]
     auth_protocol: str | None = None
     priv_protocol: str | None = None
+    controller_url: str | None = None
+    omadac_id: str | None = None
+    omada_site: str | None = None
     created_at: datetime
     updated_at: datetime
 

@@ -1,7 +1,8 @@
+# --- Python ---------------------------------------------------------------------------
 __pycache__/
 *.py[cod]
 .venv/
-.env
+venv/
 *.egg-info/
 .pytest_cache/
 .mypy_cache/
@@ -11,8 +12,55 @@ coverage.xml
 htmlcov/
 dist/
 build/
-*.log
-.pgdata/
 backend/openapi.json.tmp
+
+# --- Node / Next.js ---------------------------------------------------------------------
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# --- Secrets: never commit ----------------------------------------------------------------
+# Environment files (only the *.example templates are tracked)
+.env
+.env.*
+!.env.example
+!**/.env.example
+# Local all-in-one runner data: SQLite DB, vault key (secrets.json), admin password
+backend/.localdev/
+# Keys, certificates, keystores
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa*
+id_ed25519*
+id_ecdsa*
+known_hosts
+# Credential / secret dumps
+secrets.json
+secrets.*.json
+credentials.json
+*.secret
+*.secrets
+# Local databases and data
+*.db
+*.sqlite
+*.sqlite3
+.pgdata/
+# Device configuration backups exported by hand (may contain secrets)
+*.cfg.bak
+backups-export/
+# Assistant / editor local settings
+.claude/settings.local.json
+
+# --- Logs & OS / editor noise -------------------------------------------------------------
+*.log
 .idea/
 .vscode/
+.DS_Store
+Thumbs.db

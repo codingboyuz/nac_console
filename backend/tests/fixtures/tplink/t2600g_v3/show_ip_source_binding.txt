@@ -1,0 +1,5 @@
+U    - Unit,  B - Binding Type
+ID   Host Name    IP-Addr       MAC-Addr           VID   Port      ACL      B
+---  -----------  ------------  -----------------  ----  --------  -------  ------------
+1    --           10.10.10.21   00:e0:fc:12:34:56  10    Gi1/0/1   Disable  DHCP-Snooping
+2    --           10.10.10.22   3c:52:82:aa:01:01  10    Gi1/0/2   Disable  DHCP-Snooping

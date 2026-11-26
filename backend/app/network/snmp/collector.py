@@ -132,3 +132,49 @@ async def collect_entity(client: SnmpClient) -> EntitySnapshot:
         fans_ok=fans,
         power_ok=power,
     )
+
+
+async def collect_entity_cisco(client: SnmpClient) -> EntitySnapshot:
+    """Cisco CPU / memory pool / environment sensors (IOS, IOS-XE, NX-OS, SMB)."""
+    cpu = list((await _column(client, oids.CISCO_CPU_1MIN)).values())
+    used = await _column(client, oids.CISCO_MEM_USED)
+    free = await _column(client, oids.CISCO_MEM_FREE)
+    pool = 1 if 1 in used and 1 in free else next(iter(used), None)
+    memory = None
+    if pool is not None and pool in free and (used[pool] + free[pool]):
+        memory = round(used[pool] / (used[pool] + free[pool]) * 100, 1)
+    temps = [float(v) for v in (await _column(client, oids.CISCO_TEMPERATURE)).values() if v]
+    fans = {
+        i: v == 1
+        for i, v in _by_suffix(
+            await _raw(client, oids.CISCO_FAN_STATE), oids.CISCO_FAN_STATE
+        ).items()
+        if v != 5  # notPresent
+    }
+    power = {
+        i: v == 1
+        for i, v in _by_suffix(
+            await _raw(client, oids.CISCO_POWER_STATE), oids.CISCO_POWER_STATE
+        ).items()
+        if v != 5
+    }
+    return EntitySnapshot(
+        cpu_percent=float(max(cpu)) if cpu else None,
+        memory_percent=memory,
+        temperatures_c=temps,
+        fans_ok=fans,
+        power_ok=power,
+    )
+
+
+async def collect_entity_tplink(client: SnmpClient) -> EntitySnapshot:
+    """TP-Link per-unit CPU / memory utilisation (no fan/power/temperature MIB used)."""
+    cpu = list((await _column(client, oids.TPLINK_CPU_1MIN)).values())
+    mem = list((await _column(client, oids.TPLINK_MEMORY)).values())
+    return EntitySnapshot(
+        cpu_percent=float(max(cpu)) if cpu else None,
+        memory_percent=float(max(mem)) if mem else None,
+        temperatures_c=[],
+        fans_ok={},
+        power_ok={},
+    )

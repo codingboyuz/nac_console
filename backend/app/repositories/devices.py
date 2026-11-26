@@ -24,6 +24,7 @@ class DeviceRepository(Repository[Device]):
     filterable = {
         "status": Device.status,
         "family": Device.family,
+        "platform": Device.platform,
         "protocol": Device.protocol,
         "group_id": Device.group_id,
         "site": Device.site,

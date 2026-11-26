@@ -1,0 +1,15 @@
+                                             Flow Link   Back     Mdix
+Port     Type         Duplex  Speed Neg      ctrl State  Pressure Mode
+-------- ------------ ------  ----- -------- ---- -----  -------- ----
+gi1/0/1  1G-Copper    Full    1000  Enabled  Off  Up     Disabled On
+gi1/0/2  1G-Copper    --      --    --       --   Down   --       --
+gi1/0/3  1G-Copper    Full    100   Enabled  Off  Up     Disabled Off
+gi1/0/4  1G-Copper    --      --    --       --   Down*  --       --
+te1/0/1  10G-Fiber    Full    10000 Disabled Off  Up     Disabled Off
+
+                                          Flow    Link
+Ch       Type    Duplex  Speed  Neg      control  State
+-------- ------- ------  -----  -------- -------  -----------
+Po1      1G      Full    10000  Disabled Off      Up
+
+*: The interface was suspended by the system.

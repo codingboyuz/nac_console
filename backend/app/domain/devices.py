@@ -10,6 +10,7 @@ class DeviceProtocol(StrEnum):
     TELNET = "telnet"
     NETCONF = "netconf"
     SNMP = "snmp"
+    API = "api"  # vendor controller REST API (TP-Link Omada)
 
     @property
     def insecure(self) -> bool:
@@ -17,7 +18,7 @@ class DeviceProtocol(StrEnum):
 
     @property
     def default_port(self) -> int:
-        return {"ssh": 22, "telnet": 23, "netconf": 830, "snmp": 161}[self.value]
+        return {"ssh": 22, "telnet": 23, "netconf": 830, "snmp": 161, "api": 443}[self.value]
 
 
 class DeviceFamily(StrEnum):
@@ -47,6 +48,7 @@ class CredentialKind(StrEnum):
     CLI = "cli"  # SSH / Telnet / NETCONF: username + password or private key
     SNMP_V2C = "snmp_v2c"
     SNMP_V3 = "snmp_v3"
+    OMADA_API = "omada_api"  # Omada Open API client: client_id + client_secret + controller
 
 
 class HostKeyStatus(StrEnum):

@@ -16,6 +16,7 @@ from app.domain.devices import (
     DeviceStatus,
 )
 from app.domain.identity import Principal
+from app.domain.platforms import Platform
 from app.repositories.base import ListQuery
 from app.schemas.commands import (
     ExecuteCommandRequest,
@@ -49,6 +50,7 @@ async def list_devices(
     paging: Paging,
     status_: Annotated[DeviceStatus | None, Query(alias="status")] = None,
     family: DeviceFamily | None = None,
+    platform: Platform | None = None,
     protocol: DeviceProtocol | None = None,
     group_id: uuid.UUID | None = None,
     site: Annotated[str | None, Query(max_length=128)] = None,
@@ -58,6 +60,7 @@ async def list_devices(
     filters = {
         "status": status_,
         "family": family,
+        "platform": platform,
         "protocol": protocol,
         "group_id": group_id,
         "site": site,

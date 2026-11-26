@@ -16,6 +16,7 @@ from app.domain.devices import (
     DeviceStatus,
     HostKeyStatus,
 )
+from app.domain.platforms import Platform
 from app.models.base import Base, InetType, JsonType, TimestampMixin, UuidPkMixin, str_enum
 
 
@@ -56,6 +57,13 @@ class Device(UuidPkMixin, TimestampMixin, Base):
     family: Mapped[DeviceFamily] = mapped_column(
         str_enum(DeviceFamily, "device_family"), default=DeviceFamily.UNKNOWN
     )
+    # Dispatch key for every vendor-specific behaviour (driver, CLI dialect, builders).
+    platform: Mapped[Platform] = mapped_column(
+        str_enum(Platform, "device_platform"),
+        default=Platform.HUAWEI_VRP,
+        server_default=Platform.HUAWEI_VRP.value,
+    )
+    # Operating system version (VRP / IOS / NX-OS / firmware); column name kept for history.
     vrp_version: Mapped[str | None] = mapped_column(String(64))
     protocol: Mapped[DeviceProtocol] = mapped_column(str_enum(DeviceProtocol, "device_protocol"))
     port: Mapped[int] = mapped_column(Integer)

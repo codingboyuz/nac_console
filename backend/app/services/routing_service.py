@@ -17,30 +17,18 @@ from app.models.device import Device
 from app.network.builders import cli_routing
 from app.network.builders.cli_routing import RoutingValidationError
 from app.network.builders.plan import ConfigPlan
-from app.network.parsers import RouteEntry, parse_routing_table
+from app.network.parsers import RouteEntry
 from app.network.parsers.routing_protocols import (
     BgpPeer,
     OspfNeighbor,
-    parse_bgp_peers,
-    parse_ospf_peers,
-    parse_static_route_lines,
 )
+from app.network.platforms import Q, adapter_of
 from app.network.ports import DeviceDriver
 from app.repositories.uow import UnitOfWork
 from app.services.change_service import ChangeOptions, ChangeResult, ChangeService
 from app.services.collection_service import CollectionService
 from app.services.device_service import DeviceService
 from app.services.vlan_service import L2Base
-
-# feature -> probe command (Unrecognized command => feature absent on this platform/licence)
-PROBES: dict[str, str] = {
-    "static": "display ip routing-table protocol static",
-    "ospf": "display ospf brief",
-    "bgp": "display bgp peer",
-    "rip": "display rip",
-    "vrrp": "display vrrp brief",
-    "route_policy": "display route-policy",
-}
 
 
 @dataclass(frozen=True, slots=True)
@@ -82,9 +70,12 @@ class RoutingService(L2Base):
         if cached and not refresh:
             return cached
 
+        # feature -> probe command (Unrecognized command => absent on this platform/licence)
+        probes = adapter_of(device).routing_probes
+
         def probe(driver: DeviceDriver) -> dict[str, bool]:
             result: dict[str, bool] = {}
-            for feature, command in PROBES.items():
+            for feature, command in probes.items():
                 try:
                     driver.run_show(command)
                     result[feature] = True
@@ -109,8 +100,8 @@ class RoutingService(L2Base):
 
     async def table(self, principal: Principal, device_id: uuid.UUID) -> list[RouteEntry]:
         device = await self._device(principal, device_id)
-        rows = parse_routing_table(
-            await self._collection.show(device, "display ip routing-table", principal)
+        rows = adapter_of(device).parsers.parse_routing_table(
+            await self._collection.query(device, Q.ROUTES, principal)
         )
         async with UnitOfWork(self._db) as uow:
             await uow.session.execute(delete(Route).where(Route.device_id == device.id))
@@ -135,14 +126,16 @@ class RoutingService(L2Base):
     ) -> list[OspfNeighbor]:
         device = await self._device(principal, device_id)
         await self._require(principal, device, "ospf")
-        return parse_ospf_peers(
-            await self._collection.show(device, "display ospf peer brief", principal)
+        return adapter_of(device).parsers.parse_ospf_peers(
+            await self._collection.query(device, Q.OSPF_NEIGHBORS, principal)
         )
 
     async def bgp_peers(self, principal: Principal, device_id: uuid.UUID) -> list[BgpPeer]:
         device = await self._device(principal, device_id)
         await self._require(principal, device, "bgp")
-        return parse_bgp_peers(await self._collection.show(device, "display bgp peer", principal))
+        return adapter_of(device).parsers.parse_bgp_peers(
+            await self._collection.query(device, Q.BGP_PEERS, principal)
+        )
 
     async def _guarded(
         self,
@@ -177,17 +170,17 @@ class RoutingService(L2Base):
         options: ChangeOptions,
     ) -> RoutingChangeResult:
         device = await self._device(principal, device_id)
-        existing = parse_static_route_lines(
-            await self._collection.show(
-                device, "display current-configuration | include ip route-static", principal
-            )
+        existing = adapter_of(device).parsers.parse_static_route_lines(
+            await self._collection.query(device, Q.STATIC_ROUTE_CONFIG, principal)
         )
         return await self._guarded(
             principal,
             ctx,
             device,
             "static",
-            lambda: cli_routing.static_route(route, existing, remove=remove, verify=verify),
+            lambda: adapter_of(device).routing.static_route(
+                route, existing, remove=remove, verify=verify
+            ),
             options,
         )
 
@@ -202,11 +195,11 @@ class RoutingService(L2Base):
     ) -> RoutingChangeResult:
         """OSPF / BGP / RIP / VRRP / route-policy via typed builders."""
         builders: dict[str, Callable[[], ConfigPlan]] = {
-            "ospf": lambda: cli_routing.ospf(**params),
-            "bgp": lambda: cli_routing.bgp(**params),
-            "rip": lambda: cli_routing.rip(**params),
-            "vrrp": lambda: cli_routing.vrrp(**params),
-            "route_policy": lambda: cli_routing.route_policy(**params),
+            "ospf": lambda: adapter_of(device).routing.ospf(**params),
+            "bgp": lambda: adapter_of(device).routing.bgp(**params),
+            "rip": lambda: adapter_of(device).routing.rip(**params),
+            "vrrp": lambda: adapter_of(device).routing.vrrp(**params),
+            "route_policy": lambda: adapter_of(device).routing.route_policy(**params),
         }
         if feature not in builders:
             raise ValidationFailed(f"unknown routing feature {feature}")

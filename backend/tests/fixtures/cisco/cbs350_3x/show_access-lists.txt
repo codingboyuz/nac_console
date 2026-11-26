@@ -1,0 +1,8 @@
+Extended IP access list USERS-IN
+    permit tcp 10.10.10.0 0.0.0.255 any any 80 ace-priority 20
+    permit udp any any any 53 ace-priority 40
+    deny ip any 192.0.2.10 0.0.0.0 ace-priority 60
+    permit ip any any ace-priority 80
+Extended IP access list MGMT-ONLY
+    permit ip 192.0.2.0 0.0.0.255 any ace-priority 20
+    deny ip any any ace-priority 40

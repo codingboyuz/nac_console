@@ -1,0 +1,7 @@
+
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    Eth1/3, Eth1/5, Eth1/6, Eth1/7
+                                                Eth1/8
+10   Servers                          active    Po10, Eth1/1, Eth1/2
+100  MGMT                             active    Po10, Eth1/49

@@ -42,3 +42,14 @@ def is_multicast(mac: str) -> bool:
 def is_locally_administered(mac: str) -> bool:
     """Randomized/private MACs (common on phones) set the U/L bit."""
     return bool(int(normalize_mac(mac)[:2], 16) & 2)
+
+
+def to_cisco(mac: str) -> str:
+    """Canonical -> Cisco / TP-Link CLI format ``aabb.ccdd.eeff``."""
+    raw = normalize_mac(mac).replace(":", "")
+    return f"{raw[0:4]}.{raw[4:8]}.{raw[8:12]}"
+
+
+def to_ietf(mac: str) -> str:
+    """Canonical -> RFC 3580 / IETF Calling-Station-Id ``AA-BB-CC-DD-EE-FF``."""
+    return normalize_mac(mac).replace(":", "-").upper()

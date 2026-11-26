@@ -75,3 +75,8 @@ def to_huawei_ranges(vlans: list[int]) -> str:
         start = prev = vid
     parts.append(str(start) if start == prev else f"{start} to {prev}")
     return " ".join(parts)
+
+
+def to_cisco_ranges(vlans: list[int]) -> str:
+    """[10, 11, 12, 20] -> '10-12,20' (Cisco / TP-Link VLAN list syntax)."""
+    return to_huawei_ranges(vlans).replace(" to ", "-").replace(" ", ",")

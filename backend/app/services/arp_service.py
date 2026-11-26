@@ -14,7 +14,7 @@ from app.domain.identity import Principal, RequestContext
 from app.domain.mac import normalize_mac
 from app.models.device import Device
 from app.models.network_state import ArpEntry, DhcpBinding, MacEntry, MacMove
-from app.network.builders import cli_l2
+from app.network.platforms import Q, adapter_of
 from app.repositories.devices import DeviceRepository
 from app.repositories.uow import UnitOfWork
 from app.services.change_service import ChangeOptions, ChangeResult, ChangeService
@@ -119,7 +119,7 @@ class ArpService(L2Base):
     ) -> list[analysis.Finding]:
         """Rogue-DHCP exposure: 'dhcp snooping trusted' configured on non-uplink ports."""
         device = await self._device(principal, device_id)
-        out = await self._collection.show(device, "display current-configuration", principal)
+        out = await self._collection.query(device, Q.RUNNING_CONFIG, principal)
         trusted: list[str] = []
         current: str | None = None
         for line in out.splitlines():
@@ -141,5 +141,5 @@ class ArpService(L2Base):
     ) -> ChangeResult:
         device = await self._device(principal, device_id)
         return await self._apply(
-            principal, ctx, device, cli_l2.dhcp_snooping(vlans, trusted), options
+            principal, ctx, device, adapter_of(device).l2.dhcp_snooping(vlans, trusted), options
         )

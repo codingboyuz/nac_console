@@ -1,0 +1,6 @@
+VLAN  Name                 Status    Ports
+----- -------------------- --------- ----------------------------------------
+1     System-VLAN          active    Gi1/0/5-24, Gi1/0/26-28
+10    Users                active    Gi1/0/1-2, Gi1/0/25
+20    Voice                active    Gi1/0/3, Gi1/0/25
+100   MGMT                 active    Gi1/0/25

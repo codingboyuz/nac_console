@@ -13,10 +13,10 @@ from app.domain.acl import AclKind, AclRuleSpec, AclValidationError, PortMatch, 
 from app.domain.identity import Principal, RequestContext
 from app.models.acl import Acl, AclRule
 from app.models.device import Device
-from app.network.builders import cli_acl
-from app.network.builders.cli_acl import AclDefinition, Direction
+from app.network.builders.cli_acl import AclDefinition, Direction, next_rule_id
 from app.network.builders.plan import ConfigPlan
-from app.network.parsers.acl import ParsedAcl, management_acls, parse_acls
+from app.network.parsers.acl import ParsedAcl, management_acls
+from app.network.platforms import Q, adapter_of
 from app.repositories.uow import UnitOfWork
 from app.services.change_service import ChangeOptions, ChangeResult, ChangeService
 from app.services.collection_service import CollectionService
@@ -72,7 +72,9 @@ class AclService(L2Base):
 
     async def live(self, principal: Principal, device_id: uuid.UUID) -> list[ParsedAcl]:
         device = await self._device(principal, device_id)
-        return parse_acls(await self._collection.show(device, "display acl all", principal))
+        return adapter_of(device).parsers.parse_acls(
+            await self._collection.query(device, Q.ACLS, principal)
+        )
 
     async def stored(self, principal: Principal, device_id: uuid.UUID) -> list[Acl]:
         await self._device(principal, device_id)
@@ -83,15 +85,17 @@ class AclService(L2Base):
             return list(rows.all())
 
     async def _mgmt_acls(self, principal: Principal, device: Device) -> frozenset[str]:
-        return management_acls(
-            await self._collection.show(device, "display current-configuration", principal)
-        )
+        return management_acls(await self._collection.query(device, Q.RUNNING_CONFIG, principal))
 
     async def _current(
         self, principal: Principal, device: Device, identifier: str
     ) -> ParsedAcl | None:
-        out = await self._collection.show(device, f"display acl {identifier}", principal)
-        found = [a for a in parse_acls(out) if identifier in {str(a.number), a.name}]
+        out = await self._collection.query(device, Q.ACL, principal, identifier=str(identifier))
+        found = [
+            a
+            for a in adapter_of(device).parsers.parse_acls(out)
+            if identifier in {str(a.number), a.name}
+        ]
         return found[0] if found else None
 
     async def deploy(
@@ -110,7 +114,9 @@ class AclService(L2Base):
                 raise ValidationFailed("ACL number does not match its kind")
             device = await self._device(principal, device_id)
             current = await self._current(principal, device, definition.identifier)
-            plan = cli_acl.plan_acl(definition, current, await self._mgmt_acls(principal, device))
+            plan = adapter_of(device).acl.plan_acl(
+                definition, current, await self._mgmt_acls(principal, device)
+            )
         except AclValidationError as exc:
             raise ValidationFailed(str(exc)) from exc
         result = await self._apply(principal, ctx, device, plan, options)
@@ -137,7 +143,7 @@ class AclService(L2Base):
                 raise NotFound(f"rule {remove_rule_id} not found")
             rules.pop(remove_rule_id)
         elif rule is not None:
-            rid = rule.rule_id or cli_acl.next_rule_id(set(rules))
+            rid = rule.rule_id or next_rule_id(set(rules))
             rules[rid] = replace(rule, rule_id=rid)
         return await self.deploy(
             principal,
@@ -165,7 +171,9 @@ class AclService(L2Base):
     ) -> ChangeResult:
         definition = await self._definition(principal, device_id, identifier)
         device = await self._device(principal, device_id)
-        plan = cli_acl.delete_acl(definition, await self._mgmt_acls(principal, device))
+        plan = adapter_of(device).acl.delete_acl(
+            definition, await self._mgmt_acls(principal, device)
+        )
         result = await self._apply(principal, ctx, device, plan, options)
         if result.status == "applied":
             async with UnitOfWork(self._db) as uow:
@@ -192,7 +200,7 @@ class AclService(L2Base):
         definition = await self._definition(principal, device_id, identifier)
         device = await self._device(principal, device_id)
         try:
-            plan: ConfigPlan = cli_acl.apply_acl(
+            plan: ConfigPlan = adapter_of(device).acl.apply_acl(
                 device.family,
                 identifier,
                 direction,

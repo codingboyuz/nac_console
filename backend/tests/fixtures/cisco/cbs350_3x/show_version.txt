@@ -1,0 +1,10 @@
+Active-image: flash://system/images/image_cbs_ros_3.3.0.16_release_cisco_signed.bin
+   Version: 3.3.0.16
+   MD5 Digest: 23FA000012857D8855AABC7577AB5562
+   Date: 18-Feb-2023
+   Time: 15:03:07
+Inactive-image: flash://system/images/image_cbs_ros_3.2.1.1_release_cisco_signed.bin
+   Version: 3.2.1.1
+   MD5 Digest: 9B1A000012857D8855AABC7577AB1234
+   Date: 04-Jul-2022
+   Time: 11:20:01

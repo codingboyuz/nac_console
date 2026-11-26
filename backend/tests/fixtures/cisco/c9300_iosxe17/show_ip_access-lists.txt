@@ -1,0 +1,9 @@
+Standard IP access list MGMT-ONLY
+    10 permit 192.0.2.0, wildcard bits 0.0.0.255 (1234 matches)
+    20 permit 10.0.0.5
+    30 deny   any log
+Extended IP access list USERS-IN
+    10 permit tcp 10.10.10.0 0.0.0.255 any eq www
+    20 permit udp any any eq domain (5 matches)
+    30 deny ip any host 192.0.2.10 log
+    40 permit ip any any

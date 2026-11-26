@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from pydantic import SecretStr
@@ -35,6 +35,7 @@ class ResolvedSecret:
     auth_key: SecretStr | None = None
     priv_protocol: str | None = None
     priv_key: SecretStr | None = None
+    api: dict[str, Any] = field(default_factory=dict)  # controller_url / omadac_id / site
 
     def __repr__(self) -> str:  # never leak through logs / tracebacks
         return f"ResolvedSecret(kind={self.kind.value}, username={self.username!r})"
@@ -46,10 +47,10 @@ def _aad(credential_id: uuid.UUID) -> str:
 
 def _collect(data: CredentialCreate | CredentialUpdate) -> dict[str, str]:
     out: dict[str, str] = {}
-    for field in _SECRET_FIELDS:
-        value: SecretStr | None = getattr(data, field, None)
+    for name in _SECRET_FIELDS:
+        value: SecretStr | None = getattr(data, name, None)
         if value is not None:
-            out[field] = value.get_secret_value()
+            out[name] = value.get_secret_value()
     return out
 
 
@@ -77,6 +78,16 @@ class CredentialService:
                     "secret_fields": sorted(secrets),
                     "auth_protocol": data.auth_protocol,
                     "priv_protocol": data.priv_protocol,
+                    **(
+                        {
+                            "controller_url": (data.controller_url or "").rstrip("/"),
+                            "omadac_id": data.omadac_id,
+                            "omada_site": data.omada_site,
+                            "verify_tls": data.verify_tls,
+                        }
+                        if data.kind is CredentialKind.OMADA_API
+                        else {}
+                    ),
                 },
             )
             repo.add(cred)
@@ -140,6 +151,16 @@ class CredentialService:
             auth_key=secret("auth_key"),
             priv_protocol=meta.get("priv_protocol"),
             priv_key=secret("priv_key"),
+            api=(
+                {
+                    "controller_url": meta.get("controller_url"),
+                    "omadac_id": meta.get("omadac_id"),
+                    "site": meta.get("omada_site"),
+                    "verify_tls": meta.get("verify_tls", True),
+                }
+                if cred.kind is CredentialKind.OMADA_API
+                else {}
+            ),
         )
 
     async def rotate_keys(self) -> int:

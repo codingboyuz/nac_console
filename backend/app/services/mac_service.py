@@ -15,8 +15,7 @@ from app.core.database import Database
 from app.domain.identity import Principal, RequestContext
 from app.domain.mac import normalize_mac
 from app.models.network_state import MacEntry
-from app.network.builders import cli_l2
-from app.network.parsers import parse_mac_aging
+from app.network.platforms import Q, adapter_of
 from app.repositories.devices import DeviceRepository
 from app.repositories.uow import UnitOfWork
 from app.services.change_service import ChangeOptions, ChangeResult, ChangeService
@@ -113,8 +112,8 @@ class MacService(L2Base):
 
     async def aging(self, principal: Principal, device_id: uuid.UUID) -> int | None:
         device = await self._device(principal, device_id)
-        return parse_mac_aging(
-            await self._collection.show(device, "display mac-address aging-time", principal)
+        return adapter_of(device).parsers.parse_mac_aging(
+            await self._collection.query(device, Q.MAC_AGING, principal)
         )
 
     async def static(
@@ -131,7 +130,7 @@ class MacService(L2Base):
         options: ChangeOptions,
     ) -> ChangeResult:
         device = await self._device(principal, device_id)
-        plan = cli_l2.static_mac(
+        plan = adapter_of(device).l2.static_mac(
             normalize_mac(mac), vlan, interface, remove=remove, blackhole=blackhole
         )
         return await self._apply(principal, ctx, device, plan, options)

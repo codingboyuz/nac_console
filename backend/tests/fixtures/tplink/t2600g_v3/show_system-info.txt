@@ -1,0 +1,11 @@
+ System Description     - JetStream 24-Port Gigabit L2+ Managed Switch with 4 SFP Slots
+ System Name            - ACC-TP-01
+ System Location        - SHENZHEN
+ Contact Information    - www.tp-link.com
+ Hardware Version       - T2600G-28TS 3.0
+ Bootloader Version     - TP-LINK BOOTUTIL(v1.0.0)
+ Firmware Version       - 3.0.0 Build 20200703 Rel.61733(s)
+ Mac Address            - 50-C7-BF-12-34-00
+ Serial Number          - 2187341000123
+ System Time            - 2026-11-25 10:44:12
+ Running Time           - 3 day - 2 hour - 27 min - 46 sec

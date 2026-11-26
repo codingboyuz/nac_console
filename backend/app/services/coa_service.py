@@ -15,7 +15,9 @@ from app.core.crypto import CredentialVault
 from app.core.database import Database
 from app.core.exceptions import DeviceTimeout, NotFound, ServiceUnavailable
 from app.domain.identity import Principal, RequestContext
-from app.domain.mac import to_huawei
+from app.domain.mac import to_huawei, to_ietf
+from app.domain.platforms import Platform
+from app.models.device import Device
 from app.models.nac import NacSession, RadiusServer
 from app.repositories.uow import UnitOfWork
 from app.services.audit_service import AuditService
@@ -76,6 +78,17 @@ class CoaService:
         secret = self._vault.decrypt(server.shared_secret_ciphertext, f"radius:{server.id}")
         return secret, server
 
+    async def _calling_station_id(self, nas_ip: str, mac: str) -> str:
+        """MAC in the NAS vendor's Calling-Station-Id format (Huawei 'aabb-ccdd-eeff',
+        Cisco / TP-Link IETF 'AA-BB-CC-DD-EE-FF'); unknown NAS -> Huawei format."""
+        async with UnitOfWork(self._db) as uow:
+            platform = await uow.session.scalar(
+                select(Device.platform).where(Device.mgmt_ip == nas_ip)
+            )
+        if platform is not None and not Platform(platform).is_huawei:
+            return to_ietf(mac)
+        return to_huawei(mac)
+
     async def send(
         self, principal: Principal, ctx: RequestContext, session_id: uuid.UUID, kind: str
     ) -> CoaResult:
@@ -86,7 +99,7 @@ class CoaService:
         secret, server = await self._secret()
         attrs: dict[str, Any] = {
             "Acct_Session_Id": session.acct_session_id,
-            "Calling_Station_Id": to_huawei(session.mac),
+            "Calling_Station_Id": await self._calling_station_id(session.nas_ip, session.mac),
             "NAS_IP_Address": session.nas_ip,
         }
         if session.username:

@@ -9,9 +9,11 @@ from typing import Any
 from app.core.database import Database
 from app.core.exceptions import Conflict, Forbidden, NotFound, ValidationFailed
 from app.core.rbac import Permission
-from app.domain.devices import CredentialKind, DeviceProtocol, HostKeyStatus
+from app.domain.devices import CredentialKind, DeviceFamily, DeviceProtocol, HostKeyStatus
 from app.domain.identity import Principal
+from app.domain.platforms import Platform
 from app.models.device import Device, DeviceGroup, SshHostKey
+from app.network.platforms import adapter_for
 from app.repositories.base import ListQuery, Page
 from app.repositories.devices import (
     CredentialRepository,
@@ -27,6 +29,7 @@ _NON_NULLABLE = {
     "hostname",
     "mgmt_ip",
     "family",
+    "platform",
     "protocol",
     "port",
     "snmp_port",
@@ -59,15 +62,34 @@ class DeviceService:
             raise Forbidden("only ADMIN/NETWORK_ADMIN may register insecure protocols")
 
     @staticmethod
+    def _huawei_platform(platform: Platform, family: DeviceFamily) -> Platform:
+        """For Huawei the hardware family decides VRP V5 (S/AR) vs VRP V8 (CE)."""
+        if platform.is_huawei and family is not DeviceFamily.UNKNOWN:
+            return Platform.for_huawei_family(family)
+        return platform
+
+    @staticmethod
+    def _check_platform(platform: Platform, family: DeviceFamily, protocol: DeviceProtocol) -> None:
+        """The platform must be implemented and manageable over the chosen protocol."""
+        adapter = adapter_for(platform)  # UnsupportedCapability (422) if not available yet
+        if protocol.value not in adapter.drivers:
+            raise ValidationFailed(f"{platform.label} cannot be managed over {protocol.value}")
+        if not platform.is_huawei and family is not DeviceFamily.UNKNOWN:
+            raise ValidationFailed("family (S/CE/AR) applies to Huawei platforms only")
+
+    @staticmethod
     async def _check_refs(uow: UnitOfWork, values: dict[str, Any], principal: Principal) -> None:
         creds = uow.repo(CredentialRepository)
         if values.get("credential_id"):
             cred = await creds.get(values["credential_id"])
             if cred is None:
                 raise ValidationFailed("credential_id does not exist")
-            if (
-                cred.kind is not CredentialKind.CLI
-                and values.get("protocol") != DeviceProtocol.SNMP
+            protocol = values.get("protocol")
+            if protocol == DeviceProtocol.API:
+                if cred.kind is not CredentialKind.OMADA_API:
+                    raise ValidationFailed("api devices need an 'omada_api' credential")
+            elif cred.kind is CredentialKind.OMADA_API or (
+                cred.kind is not CredentialKind.CLI and protocol != DeviceProtocol.SNMP
             ):
                 raise ValidationFailed("credential_id must reference a 'cli' credential")
         if values.get("snmp_credential_id"):
@@ -83,7 +105,10 @@ class DeviceService:
     # --- CRUD ----------------------------------------------------------------------------
     async def create(self, principal: Principal, data: DeviceCreate) -> Device:
         self._check_insecure(principal, data.protocol, data.allow_insecure_protocol)
+        platform = self._huawei_platform(data.platform, data.family)
+        self._check_platform(platform, data.family, data.protocol)
         values = data.model_dump()
+        values["platform"] = platform
         values["mgmt_ip"] = str(data.mgmt_ip)
         values["port"] = data.port or data.protocol.default_port
         if principal.group_scope and not data.group_id:
@@ -93,7 +118,7 @@ class DeviceService:
             if await repo.by_ip(values["mgmt_ip"]):
                 raise Conflict("a device with this mgmt_ip already exists")
             await self._check_refs(uow, values, principal)
-            device = Device(**values, vendor="Huawei", capabilities={})
+            device = Device(**values, vendor=platform.vendor.value, capabilities={})
             repo.add(device)
             await uow.commit()
             return device
@@ -143,6 +168,14 @@ class DeviceService:
                 self._check_insecure(principal, protocol, bool(allowed))
                 changes.setdefault("port", protocol.default_port)
             await self._check_refs(uow, {**changes, "protocol": protocol}, principal)
+            platform: Platform = changes.get("platform") or device.platform
+            if {"platform", "family", "protocol"} & changes.keys():
+                family: DeviceFamily = changes.get("family") or device.family
+                if "platform" in changes and not platform.is_huawei and "family" not in changes:
+                    family = changes["family"] = DeviceFamily.UNKNOWN
+                platform = changes["platform"] = self._huawei_platform(platform, family)
+                self._check_platform(platform, family, protocol)
+                changes["vendor"] = platform.vendor.value
             for key, value in changes.items():
                 setattr(device, key, value)
             await uow.commit()
@@ -162,6 +195,9 @@ class DeviceService:
             device = await uow.repo(DeviceRepository).get_or_404(device_id)
             for key, value in facts.items():
                 setattr(device, key, value)
+            family = facts.get("family")
+            if isinstance(family, DeviceFamily):
+                device.platform = self._huawei_platform(device.platform, family)
             await uow.commit()
 
     # --- groups --------------------------------------------------------------------------

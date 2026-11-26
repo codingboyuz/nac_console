@@ -1,0 +1,11 @@
+
+Port         Name               Status       Vlan       Duplex  Speed Type
+Gi1/0/1      PC-101             connected    10         a-full a-1000 10/100/1000BaseTX
+Gi1/0/2                         notconnect   10           auto   auto 10/100/1000BaseTX
+Gi1/0/3      Phone-3            connected    20         a-full  a-100 10/100/1000BaseTX
+Gi1/0/4      Disabled-port      disabled     1            auto   auto 10/100/1000BaseTX
+Gi1/0/5                         err-disabled 1            auto   auto 10/100/1000BaseTX
+Te1/1/1      UPLINK-CORE        connected    trunk        full    10G SFP-10GBase-SR
+Te1/1/2                         notconnect   1            full    10G unknown
+Po1          UPLINK-LAG         connected    trunk      a-full a-10G N/A
+Gi0/0                           connected    routed     a-full a-1000 10/100/1000BaseTX

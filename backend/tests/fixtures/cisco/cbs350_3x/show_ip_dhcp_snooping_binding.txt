@@ -1,0 +1,8 @@
+Update frequency: 1200
+Total number of binding: 2
+
+   Mac Address     IP Address  Lease    Type      VLAN  Interface
+                               (sec)
+   ------------    ----------- -------  --------  ----  ---------------
+   00e0.fc12.3456  10.10.10.21 7983     snooping  10    gi1/0/1
+   3c52.82aa.0101  10.10.10.22 6000     snooping  10    gi1/0/2

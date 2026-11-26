@@ -1,0 +1,12 @@
+Maximum Parallel Paths: 1 (1 after reset)
+IP Forwarding: enabled
+Codes: > - best, C - connected, S - static, I - ICMP
+
+IP Routing Table - 3 entries
+
+  Code       IP Route        Distance/    Next Hop       Last Time    Outgoing
+                              Metric     IP Address      Updated      Interface
+------  ------------------- ----------- --------------- ------------ ------------
+  S>    0.0.0.0/0              1/1      192.0.2.1       00:02:22     vlan 100
+  S>    10.30.0.0/16           1/1      192.0.2.1       00:02:22     vlan 100
+  C>    192.0.2.0/24           0/1      0.0.0.0                      vlan 100

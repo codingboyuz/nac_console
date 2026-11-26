@@ -43,6 +43,8 @@ class Backup(UuidPkMixin, Base):
     sha256: Mapped[str | None] = mapped_column(String(64))
     size: Mapped[int] = mapped_column(Integer, default=0)
     family: Mapped[str | None] = mapped_column(String(16))
+    # Platform the configuration was taken from (NULL on pre-0009 rows: Huawei).
+    platform: Mapped[str | None] = mapped_column(String(32))
     vrp_version: Mapped[str | None] = mapped_column(String(64))
     content: Mapped[str | None] = mapped_column(Text)
     content_ciphertext: Mapped[str | None] = mapped_column(Text)

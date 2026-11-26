@@ -1,0 +1,12 @@
+ State          :  Enable
+ Mode           :  RSTP
+ Priority       :  36864
+ Forward-Time   :  15
+ Hello-Time     :  2
+ Max-Age        :  20
+ Hold-Count     :  5
+ Max-Hops       :  20
+ Bridge ID      :  36864-50:c7:bf:12:34:00
+ Root ID        :  32768-00:01:42:97:e0:00
+ Root Path Cost :  20000
+ Root Port      :  Gi1/0/25

@@ -1,0 +1,7 @@
+Interface  Address         Hardware Addr      Status
+---------  --------------  -----------------  -------
+VLAN100    192.0.2.1       aa:bb:cc:00:01:00  dynamic
+VLAN10     10.10.10.21     00:e0:fc:12:34:56  dynamic
+VLAN100    192.0.2.9       00:50:22:00:2a:a4  static
+
+Total: 3

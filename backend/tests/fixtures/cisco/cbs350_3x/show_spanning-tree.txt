@@ -1,0 +1,26 @@
+
+Spanning tree enabled mode RSTP
+Default port cost method:  long
+Loopback guard:   Disabled
+
+  Root ID    Priority    32768
+             Address     00:01:42:97:e0:00
+             Cost        20000
+             Port        te1/0/1
+             Hello Time 2 sec  Max Age 20 sec  Forward Delay 15 sec
+
+  Bridge ID  Priority    36864
+             Address     00:24:ab:15:14:00
+             Hello Time 2 sec  Max Age 20 sec  Forward Delay 15 sec
+
+Number of topology changes 12 last change occurred 01:02:03 ago
+Times:  hold 1, topology change 35, notification 2
+        hello 2, max age 20, forward delay 15
+
+Interfaces
+ Name     State   Prio.Nbr    Cost    Sts   Role PortFast       Type
+-------- -------- -------- --------- ------ ---- -------- -----------------
+gi1/0/1  enabled  128.1     20000     FRW   Desg Yes      P2p (RSTP)
+gi1/0/2  enabled  128.2     20000     DIS   -    -        -
+te1/0/1  enabled  128.49    2000      FRW   Root No       P2p (RSTP)
+te1/0/2  enabled  128.50    2000      BLK   Altn No       Shared (STP)

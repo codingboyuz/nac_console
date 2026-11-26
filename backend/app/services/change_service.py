@@ -19,13 +19,15 @@ from app.core.exceptions import AppError, DeviceError, Forbidden, LockoutRisk, V
 from app.core.rbac import Role
 from app.core.redaction import redact_text
 from app.domain.commands.categories import Classification, CommandCategory
-from app.domain.commands.classifier import CommandClassifier, DeviceContext
-from app.domain.commands.lockout import LockoutContext, LockoutFinding, LockoutGuard
+from app.domain.commands.classifier import DeviceContext
+from app.domain.commands.lockout import LockoutContext, LockoutFinding
 from app.domain.devices import DeviceProtocol
 from app.domain.identity import Principal, RequestContext
+from app.domain.platforms import CommitModel, RollbackTimer
 from app.models.device import Device
 from app.network.builders.plan import ConfigPlan
 from app.network.locks import device_config_lock
+from app.network.platforms import adapter_of
 from app.network.ports import DeviceDriver
 from app.services.audit_service import AuditService
 from app.services.command_service import authorize_category
@@ -87,8 +89,6 @@ class ChangeService:
         self._connector = connector
         self._confirm = confirmations
         self._audit = audit
-        self._classifier = CommandClassifier()
-        self._guard = LockoutGuard()
         self.pre_change_hooks: list[ChangeHook] = []
         self.post_change_hooks: list[ChangeHook] = []
 
@@ -99,8 +99,9 @@ class ChangeService:
         if plan.netconf_xml and not plan.lines:
             return Classification(CommandCategory.WARNING, "NETCONF edit-config"), []
         ctx = device_context(device)
-        classification = self._classifier.classify_config(list(plan.lines), ctx)
-        findings = self._guard.check(
+        adapter = adapter_of(device)
+        classification = adapter.classifier.classify_config(list(plan.lines), ctx)
+        findings = adapter.lockout.check(
             list(plan.lines),
             LockoutContext(ctx, tuple(self._settings.controller_ips), plan.mgmt_acls),
         )
@@ -150,7 +151,7 @@ class ChangeService:
         try:
             if findings:
                 category = CommandCategory.DANGEROUS
-                self._check_override(principal, options, findings)
+                self._check_override(principal, options, findings, device)
             authorize_category(principal, category)
         except (Forbidden, LockoutRisk) as exc:
             await audit(False, f"denied: {exc.message}")
@@ -205,8 +206,17 @@ class ChangeService:
 
     @staticmethod
     def _check_override(
-        principal: Principal, options: ChangeOptions, findings: list[LockoutFinding]
+        principal: Principal,
+        options: ChangeOptions,
+        findings: list[LockoutFinding],
+        device: Device | None = None,
     ) -> None:
+        if device is not None and not adapter_of(device).supports_rollback_timer:
+            raise LockoutRisk(
+                "change would cut the management path and this platform has no device-side "
+                "rollback timer; apply it from the console instead",
+                details=[{"line": f.line, "reason": f.reason} for f in findings],
+            )
         minutes = options.rollback_minutes or 0
         if options.override_lockout and principal.role is Role.ADMIN and 1 <= minutes <= 30:
             return
@@ -254,23 +264,27 @@ def _run_plan(
             raise ValidationFailed("this change has no NETCONF payload for the device's models")
         result = driver.apply_edit(plan.netconf_xml)  # type: ignore[attr-defined]
         return str(result.output)[:2000], "applied"
-    uses_commit = device.family.uses_commit
+    adapter = adapter_of(device)
+    if timer and not adapter.supports_rollback_timer:
+        # Without a device-side timer a timed safety net cannot be honoured: refuse.
+        raise LockoutRisk(f"{adapter.platform.label} has no device-side rollback timer")
+    reload_timer = bool(timer) and adapter.rollback_timer is RollbackTimer.SCHEDULED_RELOAD
+    trial = timer * 60 if timer and adapter.rollback_timer is RollbackTimer.COMMIT_TRIAL else None
     output = ""
-    if timer and not uses_commit:
+    if reload_timer:
         output += _call(driver, "arm_rollback_timer", timer)
-    trial = timer * 60 if timer and uses_commit else None
     result = driver.push_config(list(plan.lines), save=False, trial_seconds=trial)
     output += result.output
     if plan.verify is not None and not plan.verify(driver):
         if plan.rollback:
             output += driver.push_config(list(plan.rollback), save=False).output
-        if timer and not uses_commit:
+        if reload_timer:
             output += _call(driver, "disarm_rollback_timer")
         return output, "rolled_back"
-    if timer and not uses_commit:
+    if reload_timer:
         output += _call(driver, "disarm_rollback_timer")
     if trial:
         output += _call(driver, "confirm_trial")
-    if save and not uses_commit:
+    if save and adapter.commit_model is CommitModel.IMMEDIATE:
         output += _call(driver, "save")
     return output[-4000:], "applied"

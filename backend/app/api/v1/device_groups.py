@@ -67,6 +67,9 @@ def _cred_out(cred: Credential) -> CredentialOut:
         secret_fields=list(meta.get("secret_fields", [])),
         auth_protocol=meta.get("auth_protocol"),
         priv_protocol=meta.get("priv_protocol"),
+        controller_url=meta.get("controller_url"),
+        omadac_id=meta.get("omadac_id"),
+        omada_site=meta.get("omada_site"),
         created_at=cred.created_at,
         updated_at=cred.updated_at,
     )

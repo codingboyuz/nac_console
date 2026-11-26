@@ -1,0 +1,48 @@
+config-file-header
+ACC-CBS-01
+v3.3.0.16 / RCBS3.3_950_377_134
+CLI v1.0
+file SSD indicator encrypted
+@
+ssd-control-start
+ssd config
+ssd file passphrase control unrestricted
+no ssd file integrity control
+ssd-control-end cb0a3fdb1f3a1af4e4430033719968c0
+!
+vlan database
+vlan 10,20,100,999
+exit
+hostname ACC-CBS-01
+username netops password encrypted $15$abcdefghijklmnopqrstuvwx privilege 15
+snmp-server community S3cretRO ro view Default
+radius-server host 192.0.2.50 key MyRadKey1 usage dot1.x
+ip dhcp snooping
+ip dhcp snooping vlan 10
+management access-list MGMT
+permit ip-source 192.0.2.0 mask 255.255.255.0
+exit
+management access-class MGMT
+interface vlan 10
+ name Users
+exit
+interface vlan 100
+ name MGMT
+ ip address 192.0.2.30 255.255.255.0
+exit
+interface GigabitEthernet1/0/1
+ description PC-101
+ switchport access vlan 10
+exit
+interface GigabitEthernet1/0/2
+ switchport access vlan 10
+exit
+interface TenGigabitEthernet1/0/1
+ description UPLINK-CORE
+ switchport mode trunk
+ switchport trunk allowed vlan add 10,20,100,999
+ switchport trunk native vlan 100
+ ip dhcp snooping trust
+exit
+ip route 0.0.0.0 0.0.0.0 192.0.2.1
+ip route 10.30.0.0 255.255.0.0 192.0.2.1

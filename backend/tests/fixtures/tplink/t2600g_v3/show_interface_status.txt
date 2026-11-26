@@ -1,0 +1,8 @@
+Port      Status    Speed  Duplex  FlowCtrl  Active-Medium  Description
+-------   --------  -----  ------  --------  -------------  -----------
+Gi1/0/1   LinkUp    1000M  Full    Disable   Copper         PC-101
+Gi1/0/2   LinkDown  N/A    N/A     N/A       Copper
+Gi1/0/3   LinkUp    100M   Full    Disable   Copper         Phone-3
+Gi1/0/4   Disable   N/A    N/A     N/A       Copper         unused
+Gi1/0/25  LinkUp    1000M  Full    Disable   Fiber          UPLINK
+Po1       LinkUp    2000M  Full    Disable   --

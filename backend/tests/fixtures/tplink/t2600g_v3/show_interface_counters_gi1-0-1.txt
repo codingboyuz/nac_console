@@ -1,0 +1,13 @@
+ Gi1/0/1:
+     Tx Unicast Pkts:          2345678
+     Tx Broadcast Pkts:        35
+     Tx Multicast Pkts:        120
+     Tx Octets:                1876543210
+     Rx Unicast Pkts:          1234567
+     Rx Broadcast Pkts:        2345
+     Rx Multicast Pkts:        1234
+     Rx Octets:                987654321
+     CRC Errors:               2
+     Undersize Pkts:           0
+     Oversize Pkts:            1
+     Collisions:               0

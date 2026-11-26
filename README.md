@@ -3,13 +3,18 @@
 Backend that automates, monitors, audits and secures Huawei S-series, CloudEngine and AR devices
 over SSH, Telnet, NETCONF and SNMP, with an integrated NAC engine (802.1X, MAB, RADIUS,
 dynamic / guest / quarantine VLAN). It serves a separate React + TypeScript frontend through a
-complete OpenAPI 3.1 contract and WebSockets.
+complete OpenAPI 3.1 contract and WebSockets. The web console lives in [`frontend/`](frontend/README.md)
+(Next.js 16, `npm run dev` on port 3000).
 
 **For authorized network administration only.** The platform acts only on explicitly
 registered devices and explicitly allowed subnets.
 
 ## Highlights
 
+- Multi-vendor platforms (ADR 0002): Huawei VRP V5 / V8, Cisco IOS / IOS-XE, NX-OS and Small
+  Business (CBS/SG), TP-Link JetStream / Omada switches over CLI, and Omada-managed switches
+  through the Omada Controller Open API. `GET /api/v1/platforms` lists what each one supports;
+  lab-validation status per vendor is in `backend/docs/HARDWARE_VALIDATION.md`.
 - Device inventory with AES-256-GCM credential vault (key rotation), SSH host-key pinning,
   Telnet only with an explicit flag and a security warning.
 - Deny-by-default command classifier (SAFE / WARNING / DANGEROUS), CLI-injection guard,
@@ -27,6 +32,17 @@ registered devices and explicitly allowed subnets.
 - NAC: declarative policy engine, FreeRADIUS integration, profiling, RFC 5176 CoA, switch-side
   provisioning generator.
 - RBAC (5 roles), JWT with refresh rotation, append-only audit trail, problem+json errors.
+
+## Quick start (Windows, one click)
+
+`start.bat` (repo root) starts the backend and the web console in two windows and opens
+http://localhost:3000; `stop.bat` closes them. Needs only Python 3.12 and Node.js 20+:
+the first run installs dependencies, the backend uses a SQLite file
+(`backend/.localdev/nac.db`) and in-process Redis, so no Docker, PostgreSQL or Redis.
+The first start creates user `admin` with a random password, shown in the backend window
+and saved to `backend/.localdev/ADMIN_PASSWORD.txt`. Keep `backend/.localdev/secrets.json`:
+it holds the key that decrypts stored device credentials. For local use only - production
+runs on PostgreSQL / Redis / Celery (below). Set `NAC_DATABASE_URL` to use PostgreSQL locally.
 
 ## Quick start (Docker)
 

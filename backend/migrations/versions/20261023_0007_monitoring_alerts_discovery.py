@@ -91,7 +91,13 @@ def upgrade() -> None:
         sa.Column("metric", sa.String(length=32), nullable=False),
         sa.Column("interface", sa.String(length=64), nullable=True),
         sa.Column("value", sa.Float(), nullable=True),
-        sa.PrimaryKeyConstraint("id", "ts", name=op.f("pk_metric_samples")),
+        # PostgreSQL partitions by RANGE (ts), so ts must be in the key. SQLite (local runner)
+        # only autoincrements a single INTEGER PRIMARY KEY.
+        (
+            sa.PrimaryKeyConstraint("id", "ts", name=op.f("pk_metric_samples"))
+            if op.get_bind().dialect.name != "sqlite"
+            else sa.PrimaryKeyConstraint("id", name=op.f("pk_metric_samples"))
+        ),
         postgresql_partition_by="RANGE (ts)",
     )
     op.create_index(

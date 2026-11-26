@@ -13,8 +13,9 @@ from app.models.device import Device
 from app.network.builders import cli_l2
 from app.network.builders.netconf_vlan import vlan_create_xml, vlan_delete_xml
 from app.network.builders.plan import ConfigPlan
-from app.network.parsers import VlanInfo, parse_vlans
-from app.network.parsers.interface_config import InterfaceConfig, parse_interface_config
+from app.network.parsers import VlanInfo
+from app.network.parsers.interface_config import InterfaceConfig
+from app.network.platforms import Q, adapter_of
 from app.services.change_service import ChangeOptions, ChangeResult, ChangeService
 from app.services.collection_service import CollectionService
 from app.services.device_service import DeviceService
@@ -48,10 +49,8 @@ class L2Base:
         if device.protocol in {DeviceProtocol.NETCONF, DeviceProtocol.SNMP}:
             raise UnsupportedCapability("port configuration needs a CLI (SSH/Telnet) device")
         name = normalize_interface(interface)
-        out = await self._collection.show(
-            device, f"display current-configuration interface {name}", principal
-        )
-        return parse_interface_config(out)
+        out = await self._collection.query(device, Q.INTERFACE_CONFIG, principal, name=name)
+        return adapter_of(device).parsers.parse_interface_config(out)
 
     async def _apply(
         self,
@@ -68,13 +67,15 @@ class VlanService(L2Base):
     async def list_live(self, principal: Principal, device_id: uuid.UUID) -> list[VlanInfo]:
         device = await self._device(principal, device_id)
         await self._collection.collect_vlans(device, principal)
-        return parse_vlans(await self._collection.show(device, "display vlan", principal))
+        return adapter_of(device).parsers.parse_vlans(
+            await self._collection.query(device, Q.VLANS, principal)
+        )
 
     async def _existing(self, principal: Principal, device: Device) -> dict[int, str | None]:
         if device.protocol is DeviceProtocol.NETCONF:
             return {}
-        out = await self._collection.show(device, "display vlan", principal)
-        return {v.vlan_id: v.name for v in parse_vlans(out)}
+        out = await self._collection.query(device, Q.VLANS, principal)
+        return {v.vlan_id: v.name for v in adapter_of(device).parsers.parse_vlans(out)}
 
     async def plan_create(
         self, principal: Principal, device: Device, vlans: dict[int, str | None]
@@ -84,7 +85,7 @@ class VlanService(L2Base):
             return ConfigPlan(
                 "vlan.create", (), netconf_xml=vlan_create_xml(vlans), summary="netconf"
             )
-        return cli_l2.create_vlans(vlans, await self._existing(principal, device))
+        return adapter_of(device).l2.create_vlans(vlans, await self._existing(principal, device))
 
     async def plan_delete(
         self, principal: Principal, device: Device, vlans: list[int]
@@ -97,7 +98,7 @@ class VlanService(L2Base):
             return ConfigPlan(
                 "vlan.delete", (), netconf_xml=vlan_delete_xml(vlans), summary="netconf"
             )
-        return cli_l2.delete_vlans(vlans, await self._existing(principal, device))
+        return adapter_of(device).l2.delete_vlans(vlans, await self._existing(principal, device))
 
     @staticmethod
     def _require_netconf_vlan(device: Device) -> None:
@@ -143,7 +144,9 @@ class VlanService(L2Base):
         options: ChangeOptions,
     ) -> ChangeResult:
         device = await self._device(principal, device_id)
-        return await self._apply(principal, ctx, device, cli_l2.rename_vlan(vlan_id, name), options)
+        return await self._apply(
+            principal, ctx, device, adapter_of(device).l2.rename_vlan(vlan_id, name), options
+        )
 
     async def set_port_vlan(
         self,
@@ -155,7 +158,7 @@ class VlanService(L2Base):
     ) -> ChangeResult:
         device = await self._device(principal, device_id)
         current = await self.interface_config(principal, device, req.interface)
-        plan = cli_l2.set_port_mode(
+        plan = adapter_of(device).l2.set_port_mode(
             req.interface,
             req.mode,
             current,
@@ -180,5 +183,9 @@ class VlanService(L2Base):
         device = await self._device(principal, device_id)
         current = await self.interface_config(principal, device, interface)
         return await self._apply(
-            principal, ctx, device, cli_l2.trunk_vlans(interface, add, remove, current), options
+            principal,
+            ctx,
+            device,
+            adapter_of(device).l2.trunk_vlans(interface, add, remove, current),
+            options,
         )

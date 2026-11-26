@@ -8,7 +8,7 @@ from app.core.exceptions import UnsafeCommand
 
 MAX_LINE_LENGTH = 512
 _PRINTABLE = re.compile(r"^[\x20-\x7e]+$")
-# Output filters VRP supports after a display command ("| include vlan").
+# Output filters after a display/show command ("| include vlan"); VRP, IOS, NX-OS, TP-Link.
 _PIPE_FILTER = re.compile(r"^\|\s*(include|exclude|begin|count|section|no-more)\b")
 _CHAINING = ("&&", "||", ";", "`", "$(", "${")
 
@@ -34,8 +34,8 @@ def validate_cli_line(line: str, *, allow_pipe: bool = False) -> str:
         head, _, tail = line.partition("|")
         if not allow_pipe or not _PIPE_FILTER.match("|" + tail) or "|" in tail:
             raise UnsafeCommand("pipes are only allowed as a display output filter")
-        if not head.strip().lower().startswith(("display", "dis ")):
-            raise UnsafeCommand("pipes are only allowed after display commands")
+        if not head.strip().lower().startswith(("display", "dis ", "show ", "sh ")):
+            raise UnsafeCommand("pipes are only allowed after display/show commands")
     return normalize_spaces(line)
 
 

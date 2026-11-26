@@ -13,26 +13,44 @@ from app.core.database import Database
 from app.domain.identity import Principal
 from app.models.device import Device
 from app.models.network_state import ArpEntry, DhcpBinding, Interface, MacEntry, MacMove, Vlan
-from app.network.parsers import (
-    parse_arp,
-    parse_dhcp_snooping_bindings,
-    parse_interface_brief,
-    parse_interface_detail,
-    parse_mac_table,
-    parse_vlans,
-)
+from app.network.platforms import Q, adapter_of
 from app.network.ports import DeviceDriver
 from app.repositories.uow import UnitOfWork
 from app.services.connection_service import DeviceConnector
 
+# Logical / non-access interfaces across vendors (LAG, management, routed VLAN, loopback...).
+_NOT_EDGE = (
+    "Eth-Trunk",
+    "MEth",
+    "Vlanif",
+    "LoopBack",
+    "NULL",  # Huawei
+    "Port-channel",
+    "port-channel",
+    "Po",
+    "Vlan",
+    "vlan",
+    "Loopback",
+    "loopback",  # Cisco
+    "Null",
+    "Tunnel",
+    "mgmt",
+    "Mgmt",
+    "nve",
+    "Nve",
+    "Link-Aggregation",
+    "Lag",
+    "LAG",  # TP-Link
+)
+
 
 def is_edge_port(device: Device, interface: str | None) -> bool:
-    """Access-side port: not an uplink, LAG, management or routed (Vlanif) interface."""
+    """Access-side port: not an uplink, LAG, management or routed (VLAN) interface."""
     if not interface:
         return False
     if interface in (device.uplink_interfaces or []):
         return False
-    return not interface.startswith(("Eth-Trunk", "MEth", "Vlanif", "LoopBack", "NULL"))
+    return not interface.startswith(_NOT_EDGE)
 
 
 class CollectionService:
@@ -52,6 +70,12 @@ class CollectionService:
 
         return await self._connector.run(device, run, principal)
 
+    async def query(
+        self, device: Device, query: Q, principal: Principal | None = None, **kwargs: str
+    ) -> str:
+        """Run a logical read query in the device platform's CLI dialect."""
+        return await self.show(device, adapter_of(device).command(query, **kwargs), principal)
+
     async def _shows(
         self, device: Device, commands: list[str], principal: Principal | None
     ) -> list[str]:
@@ -62,7 +86,9 @@ class CollectionService:
 
     # --- VLANs ---------------------------------------------------------------------------
     async def collect_vlans(self, device: Device, principal: Principal | None = None) -> list[Vlan]:
-        parsed = parse_vlans(await self.show(device, "display vlan", principal))
+        parsed = adapter_of(device).parsers.parse_vlans(
+            await self.query(device, Q.VLANS, principal)
+        )
         rows = [
             Vlan(
                 device_id=device.id,
@@ -81,13 +107,14 @@ class CollectionService:
     async def collect_interfaces(
         self, device: Device, principal: Principal | None = None
     ) -> list[Interface]:
+        adapter = adapter_of(device)
         brief_out, detail_out = await self._shows(
-            device, ["display interface brief", "display interface"], principal
+            device, [adapter.command(Q.INTERFACES_BRIEF), adapter.command(Q.INTERFACES)], principal
         )
-        details = {d.name: d for d in parse_interface_detail(detail_out)}
+        details = {d.name: d for d in adapter.parsers.parse_interface_detail(detail_out)}
         uplinks = set(device.uplink_interfaces or [])
         rows: list[Interface] = []
-        for b in parse_interface_brief(brief_out):
+        for b in adapter.parsers.parse_interface_brief(brief_out):
             d = details.get(b.name)
             rows.append(
                 Interface(
@@ -112,7 +139,9 @@ class CollectionService:
 
     # --- MAC -----------------------------------------------------------------------------
     async def collect_mac(self, device: Device, principal: Principal | None = None) -> int:
-        parsed = parse_mac_table(await self.show(device, "display mac-address", principal))
+        parsed = adapter_of(device).parsers.parse_mac_table(
+            await self.query(device, Q.MAC_TABLE, principal)
+        )
         now = datetime.now(UTC)
         async with UnitOfWork(self._db) as uow:
             s = uow.session
@@ -163,7 +192,7 @@ class CollectionService:
 
     # --- ARP / DHCP ----------------------------------------------------------------------
     async def collect_arp(self, device: Device, principal: Principal | None = None) -> int:
-        parsed = parse_arp(await self.show(device, "display arp", principal))
+        parsed = adapter_of(device).parsers.parse_arp(await self.query(device, Q.ARP, principal))
         rows = [
             ArpEntry(
                 device_id=device.id,
@@ -180,7 +209,7 @@ class CollectionService:
         return len(rows)
 
     async def collect_dhcp(self, device: Device, principal: Principal | None = None) -> int:
-        out = await self.show(device, "display dhcp snooping user-bind all", principal)
+        out = await self.query(device, Q.DHCP_BINDINGS, principal)
         rows = [
             DhcpBinding(
                 device_id=device.id,
@@ -190,7 +219,7 @@ class CollectionService:
                 interface=b.interface,
                 lease_expire=b.lease_expire,
             )
-            for b in parse_dhcp_snooping_bindings(out)
+            for b in adapter_of(device).parsers.parse_dhcp_snooping_bindings(out)
         ]
         await self._replace(DhcpBinding, device.id, rows)
         return len(rows)

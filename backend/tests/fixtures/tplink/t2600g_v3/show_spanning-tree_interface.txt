@@ -1,0 +1,6 @@
+ Interface  State   Prio  Ext-Path  Int-Path  Status      Role        Edge  P2p
+ ---------  ------  ----  --------  --------  ----------  ----------  ----  ---
+ Gi1/0/1    Enable  128   20000     20000     Forwarding  Designated  Yes   Yes
+ Gi1/0/2    Enable  128   Auto      Auto      Disabled    Disabled    No    Yes
+ Gi1/0/25   Enable  128   20000     20000     Forwarding  Root        No    Yes
+ Gi1/0/26   Enable  128   20000     20000     Blocking    Alternate   No    Yes

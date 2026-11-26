@@ -13,6 +13,7 @@ from app.domain.identity import Principal, RequestContext
 from app.models.device import Device
 from app.network.builders import cli_nac
 from app.network.builders.plan import ConfigPlan
+from app.network.platforms import Q, adapter_of
 from app.services.change_service import ChangeOptions, ChangeResult, ChangeService
 from app.services.collection_service import CollectionService
 from app.services.device_service import DeviceService
@@ -68,7 +69,7 @@ class NacProvisioningService:
             timeout=server.timeout,
         )
         try:
-            return cli_nac.provision(device.family, spec)
+            return adapter_of(device).nac.provision(device.family, spec)
         except ValueError as exc:
             raise ValidationFailed(str(exc)) from exc
 
@@ -77,8 +78,8 @@ class NacProvisioningService:
     ) -> ProvisionPreview:
         device = await self._devices.get(principal, device_id)
         plan = await self.plan(device, req)
-        running = await self._collection.show(device, "display current-configuration", principal)
-        current = redact_text(cli_nac.related_config(running))
+        running = await self._collection.query(device, Q.RUNNING_CONFIG, principal)
+        current = redact_text(adapter_of(device).nac.related_config(running))
         generated = "\n".join(redact_text(line) for line in plan.lines)
         return ProvisionPreview(
             lines=generated.split("\n"),

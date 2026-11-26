@@ -18,7 +18,7 @@ from app.domain.commands.rules import (
     Rule,
 )
 from app.domain.commands.sanitize import validate_cli_line
-from app.domain.interfaces import InvalidInterfaceName, normalize_interface
+from app.domain.interfaces import InvalidInterfaceName, normalize_interface, parse_interface
 
 D, W = CommandCategory.DANGEROUS, CommandCategory.WARNING
 _ABBREV_DISPLAY = re.compile(r"^(dis|disp|displ|displa)( |$)")
@@ -37,11 +37,24 @@ class DeviceContext:
     uplink_interfaces: frozenset[str] = field(default_factory=frozenset)
 
     def is_protected(self, interface: str) -> bool:
-        if interface.startswith(("MEth", "Eth-Trunk")):
+        try:
+            parsed = parse_interface(interface)
+        except InvalidInterfaceName:
+            parsed = None
+        if parsed is not None and (parsed.is_lag or parsed.is_management):
             return True
         if interface == self.mgmt_interface or interface in self.uplink_interfaces:
             return True
-        return self.mgmt_vlan is not None and interface == f"Vlanif{self.mgmt_vlan}"
+        return self.is_mgmt_vlan_interface(interface)
+
+    def is_mgmt_vlan_interface(self, interface: str) -> bool:
+        """Routed interface of the management VLAN (Huawei Vlanif / Cisco Vlan)."""
+        if self.mgmt_vlan is None:
+            return False
+        try:
+            return parse_interface(interface).vlanif_id == self.mgmt_vlan
+        except InvalidInterfaceName:
+            return False
 
 
 def canonical_interface(name: str) -> str:
@@ -67,11 +80,24 @@ def _match(rules: tuple[Rule, ...], text: str) -> Rule | None:
 
 
 class CommandClassifier:
-    """Stateless; ``classify_config`` tracks the CLI view across a configuration block."""
+    """Stateless; ``classify_config`` tracks the CLI view across a configuration block.
+
+    The base class is the Huawei VRP dialect. Other platforms subclass it and override the
+    rule tables, ``normalize``, ``exec_probe_prefixes``, ``_next_view`` and ``_escalate``.
+    """
+
+    dangerous_rules: tuple[Rule, ...] = DANGEROUS_RULES
+    safe_rules: tuple[Rule, ...] = SAFE_RULES
+    warning_rules: tuple[Rule, ...] = WARNING_RULES
+    exec_probe_prefixes: tuple[str, ...] = ("ping", "tracert")
+    config_outside_view_reason = "configuration command outside system-view"
+
+    def normalize(self, line: str) -> str:
+        return normalize_command(line)
 
     def classify_line(self, line: str, *, view: str | None = None) -> LineClassification:
-        text = normalize_command(line.split("|", 1)[0])
-        for rules in (DANGEROUS_RULES, SAFE_RULES, WARNING_RULES):
+        text = self.normalize(line.split("|", 1)[0])
+        for rules in (self.dangerous_rules, self.safe_rules, self.warning_rules):
             rule = _match(rules, text)
             if rule is not None:
                 return LineClassification(line, rule.category, rule.reason, view)
@@ -81,9 +107,9 @@ class CommandClassifier:
         """Classify one command entered in user view (execute-command endpoint)."""
         clean = validate_cli_line(command, allow_pipe=True)
         result = self.classify_line(clean)
-        if result.category is W and not normalize_command(clean).startswith(("ping", "tracert")):
+        if result.category is W and not self.normalize(clean).startswith(self.exec_probe_prefixes):
             # Configuration commands make no sense in user view; treat them as unknown.
-            result = LineClassification(clean, D, "configuration command outside system-view")
+            result = LineClassification(clean, D, self.config_outside_view_reason)
         return Classification(result.category, result.reason, (result,))
 
     def classify_config(
@@ -95,15 +121,14 @@ class CommandClassifier:
         results: list[LineClassification] = []
         for raw in lines:
             clean = validate_cli_line(raw)
-            text = normalize_command(clean)
+            text = self.normalize(clean)
             item = self.classify_line(clean, view=view)
             item = self._escalate(item, text, view, ctx)
             results.append(item)
             view = self._next_view(text, view)
         return Classification.of_lines(results)
 
-    @staticmethod
-    def _next_view(text: str, view: str | None) -> str | None:
+    def _next_view(self, text: str, view: str | None) -> str | None:
         match = _INTERFACE_VIEW.match(text)
         if match:
             return f"interface:{canonical_interface(match.group(1))}"
@@ -113,9 +138,8 @@ class CommandClassifier:
             return None
         return view
 
-    @staticmethod
     def _escalate(
-        item: LineClassification, text: str, view: str | None, ctx: DeviceContext
+        self, item: LineClassification, text: str, view: str | None, ctx: DeviceContext
     ) -> LineClassification:
         if item.category is D:
             return item

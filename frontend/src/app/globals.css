@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+:root {
+  color-scheme: light;
+  /* Chart roles (dataviz reference palette, light surface) */
+  --chart-surface: #ffffff;
+  --chart-grid: #eef0f3;
+  --chart-axis: #8a94a6;
+  --chart-text: #475569;
+  --chart-series-1: #257de0;
+  --status-good: #0aac23;
+  --status-warning: #fbb315;
+  --status-serious: #f18a59;
+  --status-critical: #dc3c3d;
+}
+
+body {
+  background: #f6f7f9;
+  color: #0f172a;
+}
+
+::selection {
+  background: #bfdbfe;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border: 2px solid #f6f7f9;
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}

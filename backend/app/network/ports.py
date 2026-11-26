@@ -13,6 +13,7 @@ from typing import Any, Protocol, Self, runtime_checkable
 from pydantic import SecretStr
 
 from app.domain.devices import DeviceFamily, DeviceProtocol
+from app.domain.platforms import Platform
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,6 +30,7 @@ class ConnectionParams:
     port: int
     protocol: DeviceProtocol
     family: DeviceFamily = DeviceFamily.UNKNOWN
+    platform: Platform = Platform.HUAWEI_VRP
     username: str | None = None
     password: SecretStr | None = None
     private_key: SecretStr | None = None
@@ -40,6 +42,8 @@ class ConnectionParams:
     strict_host_key: bool = True
     # SNMP specifics
     snmp: dict[str, Any] = field(default_factory=dict)
+    # Controller API specifics (Omada): controller_url, omadac_id, site, verify_tls
+    api: dict[str, Any] = field(default_factory=dict)
 
     def __repr__(self) -> str:
         return (

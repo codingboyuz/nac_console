@@ -1809,6 +1809,16 @@
         "title": "CommandCategory",
         "type": "string"
       },
+      "CommitModel": {
+        "description": "How configuration takes effect and is persisted.",
+        "enum": [
+          "immediate",
+          "two-stage",
+          "api"
+        ],
+        "title": "CommitModel",
+        "type": "string"
+      },
       "CredentialCreate": {
         "additionalProperties": false,
         "properties": {
@@ -1860,6 +1870,19 @@
             ],
             "title": "Community"
           },
+          "controller_url": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "pattern": "^https?://[A-Za-z0-9.\\-\\[\\]:]+(:\\d+)?/?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Controller Url"
+          },
           "description": {
             "anyOf": [
               {
@@ -1880,6 +1903,31 @@
             "minLength": 1,
             "title": "Name",
             "type": "string"
+          },
+          "omada_site": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Omada Site"
+          },
+          "omadac_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[A-Za-z0-9]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Omadac Id"
           },
           "password": {
             "anyOf": [
@@ -1966,6 +2014,11 @@
               }
             ],
             "title": "Username"
+          },
+          "verify_tls": {
+            "default": true,
+            "title": "Verify Tls",
+            "type": "boolean"
           }
         },
         "required": [
@@ -1979,7 +2032,8 @@
         "enum": [
           "cli",
           "snmp_v2c",
-          "snmp_v3"
+          "snmp_v3",
+          "omada_api"
         ],
         "title": "CredentialKind",
         "type": "string"
@@ -1998,6 +2052,17 @@
               }
             ],
             "title": "Auth Protocol"
+          },
+          "controller_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Controller Url"
           },
           "created_at": {
             "format": "date-time",
@@ -2030,6 +2095,28 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "omada_site": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Omada Site"
+          },
+          "omadac_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Omadac Id"
           },
           "priv_protocol": {
             "anyOf": [
@@ -2486,6 +2573,11 @@
             ],
             "title": "Model"
           },
+          "platform": {
+            "$ref": "#/components/schemas/Platform",
+            "default": "huawei_vrp",
+            "description": "Vendor platform: selects the driver, CLI dialect and builders."
+          },
           "port": {
             "anyOf": [
               {
@@ -2794,6 +2886,9 @@
             ],
             "title": "Model"
           },
+          "platform": {
+            "$ref": "#/components/schemas/Platform"
+          },
           "port": {
             "title": "Port",
             "type": "integer"
@@ -2890,6 +2985,7 @@
           "hostname",
           "mgmt_ip",
           "vendor",
+          "platform",
           "model",
           "family",
           "vrp_version",
@@ -2921,7 +3017,8 @@
           "ssh",
           "telnet",
           "netconf",
-          "snmp"
+          "snmp",
+          "api"
         ],
         "title": "DeviceProtocol",
         "type": "string"
@@ -3069,6 +3166,16 @@
               }
             ],
             "title": "Model"
+          },
+          "platform": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Platform"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "port": {
             "anyOf": [
@@ -5670,6 +5777,88 @@
         "title": "PasswordChange",
         "type": "object"
       },
+      "Platform": {
+        "enum": [
+          "huawei_vrp",
+          "huawei_vrpv8",
+          "cisco_ios",
+          "cisco_nxos",
+          "cisco_smb",
+          "tplink_jetstream",
+          "tplink_omada"
+        ],
+        "title": "Platform",
+        "type": "string"
+      },
+      "PlatformOut": {
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "commit_model": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CommitModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hybrid_ports": {
+            "title": "Hybrid Ports",
+            "type": "boolean"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "platform": {
+            "$ref": "#/components/schemas/Platform"
+          },
+          "rollback_timer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RollbackTimer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "transports": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Transports",
+            "type": "array"
+          },
+          "vendor": {
+            "$ref": "#/components/schemas/Vendor"
+          }
+        },
+        "required": [
+          "platform",
+          "vendor",
+          "label",
+          "available",
+          "transports",
+          "commit_model",
+          "rollback_timer",
+          "hybrid_ports",
+          "notes"
+        ],
+        "title": "PlatformOut",
+        "type": "object"
+      },
       "PolicyIn": {
         "additionalProperties": false,
         "properties": {
@@ -6629,6 +6818,16 @@
           "READ_ONLY"
         ],
         "title": "Role",
+        "type": "string"
+      },
+      "RollbackTimer": {
+        "description": "Device-side safety net that survives losing the management path.",
+        "enum": [
+          "commit-trial",
+          "scheduled-reload",
+          "none"
+        ],
+        "title": "RollbackTimer",
         "type": "string"
       },
       "RouteOut": {
@@ -8164,6 +8363,15 @@
         ],
         "title": "ValidationError",
         "type": "object"
+      },
+      "Vendor": {
+        "enum": [
+          "Huawei",
+          "Cisco",
+          "TP-Link"
+        ],
+        "title": "Vendor",
+        "type": "string"
       },
       "VlanCreateRequest": {
         "additionalProperties": false,
@@ -12447,6 +12655,22 @@
                 }
               ],
               "title": "Family"
+            }
+          },
+          {
+            "in": "query",
+            "name": "platform",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Platform"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Platform"
             }
           },
           {
@@ -24080,6 +24304,124 @@
         "summary": "RFC 5176 CoA-Request",
         "tags": [
           "nac"
+        ]
+      }
+    },
+    "/api/v1/platforms": {
+      "get": {
+        "operationId": "list_platforms_api_v1_platforms_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PlatformOut"
+                  },
+                  "title": "Response List Platforms Api V1 Platforms Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Unprocessable Entity"
+          },
+          "423": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Locked"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Vendor platforms and capabilities",
+        "tags": [
+          "devices"
         ]
       }
     },

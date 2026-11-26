@@ -1,0 +1,77 @@
+mgmt0 is up
+admin state is up,
+  Hardware: GigabitEthernet, address: 00de.fb12.3400 (bia 00de.fb12.3400)
+  Internet Address is 192.0.2.20/24
+  MTU 1500 bytes, BW 1000000 Kbit , DLY 10 usec
+  full-duplex, 1000 Mb/s
+  1 minute input rate 4112 bits/sec, 5 packets/sec
+  1 minute output rate 1880 bits/sec, 1 packets/sec
+  Rx
+    1234567 input packets 123456 unicast packets 1000 multicast packets
+    5000 broadcast packets 98765432 bytes
+  Tx
+    234567 output packets 200000 unicast packets 30000 multicast packets
+    4567 broadcast packets 18765432 bytes
+Ethernet1/1 is up
+admin state is up, Dedicated Interface
+  Hardware: 100/1000/10000/25000 Ethernet, address: 00de.fb12.3401 (bia 00de.fb12.3401)
+  Description: server-1
+  MTU 1500 bytes, BW 10000000 Kbit , DLY 10 usec
+  reliability 255/255, txload 1/255, rxload 1/255
+  Encapsulation ARPA, medium is broadcast
+  Port mode is access
+  full-duplex, 10 Gb/s, media type is 10G
+  30 seconds input rate 1234 bits/sec, 1 packets/sec
+  30 seconds output rate 5678 bits/sec, 2 packets/sec
+  RX
+    123456 unicast packets  100 multicast packets  10 broadcast packets
+    123566 input packets  98765432 bytes
+    0 jumbo packets  0 storm suppression packets
+    0 runts  0 giants  2 CRC  0 no buffer
+    3 input error  0 short frame  0 overrun   0 underrun  0 ignored
+    0 watchdog  0 bad etype drop  0 bad proto drop  0 if down drop
+    0 input with dribble  4 input discard
+    0 Rx pause
+  TX
+    234567 unicast packets  200 multicast packets  20 broadcast packets
+    234787 output packets  187654321 bytes
+    0 jumbo packets
+    0 output error  0 collision  0 deferred  0 late collision
+    0 lost carrier  0 no carrier  0 babble  1 output discard
+    0 Tx pause
+Ethernet1/2 is down (Link not connected)
+admin state is up, Dedicated Interface
+  Hardware: 100/1000/10000/25000 Ethernet, address: 00de.fb12.3402 (bia 00de.fb12.3402)
+  MTU 1500 bytes, BW 10000000 Kbit , DLY 10 usec
+  auto-duplex, auto-speed
+  RX
+    0 input packets  0 bytes
+    0 runts  0 giants  0 CRC  0 no buffer
+    0 input error  0 short frame  0 overrun   0 underrun  0 ignored
+  TX
+    0 output packets  0 bytes
+    0 output error  0 collision  0 deferred  0 late collision
+Ethernet1/4 is down (Administratively down)
+admin state is down, Dedicated Interface
+  Hardware: 100/1000/10000/25000 Ethernet, address: 00de.fb12.3404 (bia 00de.fb12.3404)
+  Description: unused
+  MTU 1500 bytes, BW 10000000 Kbit , DLY 10 usec
+  auto-duplex, auto-speed
+Ethernet1/49 is up
+admin state is up, Dedicated Interface
+  Hardware: 40000/100000 Ethernet, address: 00de.fb12.3431 (bia 00de.fb12.3431)
+  Description: UPLINK-SPINE
+  MTU 9216 bytes, BW 100000000 Kbit , DLY 10 usec
+  Port mode is trunk
+  full-duplex, 100 Gb/s, media type is 100G
+  30 seconds input rate 45000000 bits/sec, 9000 packets/sec
+  30 seconds output rate 32000000 bits/sec, 7000 packets/sec
+  RX
+    987654321 input packets  876543210987 bytes
+    0 runts  0 giants  0 CRC  0 no buffer
+    0 input error  0 short frame  0 overrun   0 underrun  0 ignored
+    0 input discard
+  TX
+    876543210 output packets  765432109876 bytes
+    0 output error  0 collision  0 deferred  0 late collision
+    0 output discard

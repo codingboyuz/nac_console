@@ -1,0 +1,7 @@
+#
+interface gigabitEthernet 1/0/25
+  description "UPLINK"
+  switchport general allowed vlan 10,20,100 tagged
+  switchport pvid 100
+  ip dhcp snooping trust
+#

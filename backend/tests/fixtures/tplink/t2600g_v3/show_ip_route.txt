@@ -1,0 +1,10 @@
+Codes: C - connected, S - static
+
+       * - candidate default
+
+Gateway of last resort is 192.0.2.1 to network 0.0.0.0
+
+S*     0.0.0.0/0 [1/0] via 192.0.2.1, VLAN100
+S      10.30.0.0/16 [1/0] via 192.0.2.1, VLAN100
+C      192.0.2.0/24 is directly connected, VLAN100
+C      10.10.10.0/24 is directly connected, VLAN10

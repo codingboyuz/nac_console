@@ -1,0 +1,87 @@
+Building configuration...
+
+Current configuration : 2456 bytes
+!
+! Last configuration change at 10:44:12 UTC Mon Nov 24 2026 by netops
+! NVRAM config last updated at 10:45:01 UTC Mon Nov 24 2026 by netops
+!
+version 17.9
+service timestamps debug datetime msec
+service password-encryption
+!
+hostname ACC-SW-01
+!
+enable secret 9 $9$abcdefghijklmn$opqrstuvwxyz0123456789ABCDEFGHIJK
+!
+aaa new-model
+!
+username netops privilege 15 secret 9 $9$zyxwvutsrqponm$ABCDEFGHIJKLMNOPQRSTUVWXYZ012345
+!
+vlan 10
+ name Users-Floor1
+!
+vlan 20
+ name Voice
+!
+vlan 100
+ name MGMT
+!
+vlan 999
+ name QUARANTINE
+!
+interface GigabitEthernet1/0/1
+ description PC-101
+ switchport access vlan 10
+ switchport mode access
+ spanning-tree portfast
+!
+interface GigabitEthernet1/0/2
+ switchport access vlan 10
+ switchport mode access
+!
+interface GigabitEthernet1/0/3
+ description Phone-3
+ switchport access vlan 20
+ switchport mode access
+!
+interface GigabitEthernet1/0/4
+ description Disabled-port
+ shutdown
+!
+interface TenGigabitEthernet1/1/1
+ description UPLINK-CORE
+ switchport trunk native vlan 100
+ switchport trunk allowed vlan 10,20,100,999
+ switchport mode trunk
+ ip dhcp snooping trust
+!
+interface Vlan100
+ description MGMT
+ ip address 192.0.2.10 255.255.255.0
+!
+ip route 0.0.0.0 0.0.0.0 192.0.2.1
+ip route 10.30.0.0 255.255.0.0 192.0.2.1
+!
+ip access-list standard MGMT-ONLY
+ 10 permit 192.0.2.0 0.0.0.255
+ 20 permit 10.0.0.5
+ 30 deny   any log
+!
+snmp-server community S3cretRO RO MGMT-ONLY
+!
+radius server NAC
+ address ipv4 192.0.2.50 auth-port 1812 acct-port 1813
+ key 7 0822455D0A16544541
+!
+line con 0
+ stopbits 1
+line vty 0 4
+ access-class MGMT-ONLY in
+ transport input ssh
+line vty 5 15
+ access-class MGMT-ONLY in
+ transport input ssh
+!
+ntp server 192.0.2.1
+!
+end

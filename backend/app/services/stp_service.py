@@ -6,8 +6,8 @@ import uuid
 from dataclasses import dataclass
 
 from app.domain.identity import Principal, RequestContext
-from app.network.builders import cli_l2
-from app.network.parsers import StpGlobal, StpPortBrief, parse_stp_brief, parse_stp_global
+from app.network.parsers import StpGlobal, StpPortBrief
+from app.network.platforms import Q, adapter_of
 from app.services.change_service import ChangeOptions, ChangeResult
 from app.services.vlan_service import L2Base
 
@@ -23,10 +23,10 @@ class StpStatus:
 class StpService(L2Base):
     async def status(self, principal: Principal, device_id: uuid.UUID) -> StpStatus:
         device = await self._device(principal, device_id)
-        glob_out = await self._collection.show(device, "display stp", principal)
-        brief_out = await self._collection.show(device, "display stp brief", principal)
-        info = parse_stp_global(glob_out)
-        ports = parse_stp_brief(brief_out)
+        glob_out = await self._collection.query(device, Q.STP_GLOBAL, principal)
+        brief_out = await self._collection.query(device, Q.STP_BRIEF, principal)
+        info = adapter_of(device).parsers.parse_stp_global(glob_out)
+        ports = adapter_of(device).parsers.parse_stp_brief(brief_out)
         is_root = None
         if info.bridge_id and info.root_id:
             is_root = (
@@ -55,7 +55,11 @@ class StpService(L2Base):
     ) -> ChangeResult:
         device = await self._device(principal, device_id)
         return await self._apply(
-            principal, ctx, device, cli_l2.stp_settings(mode, priority, instance), options
+            principal,
+            ctx,
+            device,
+            adapter_of(device).l2.stp_settings(mode, priority, instance),
+            options,
         )
 
     async def edge_port(
@@ -69,5 +73,5 @@ class StpService(L2Base):
     ) -> ChangeResult:
         device = await self._device(principal, device_id)
         return await self._apply(
-            principal, ctx, device, cli_l2.stp_edge_port(interface, enabled), options
+            principal, ctx, device, adapter_of(device).l2.stp_edge_port(interface, enabled), options
         )

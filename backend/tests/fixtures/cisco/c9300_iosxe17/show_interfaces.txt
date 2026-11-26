@@ -1,0 +1,64 @@
+Vlan100 is up, line protocol is up
+  Hardware is Ethernet SVI, address is 7018.a712.3446 (bia 7018.a712.3446)
+  Description: MGMT
+  Internet address is 192.0.2.10/24
+  MTU 1500 bytes, BW 1000000 Kbit/sec, DLY 10 usec,
+     reliability 255/255, txload 1/255, rxload 1/255
+  Encapsulation ARPA, loopback not set
+  5 minute input rate 2000 bits/sec, 3 packets/sec
+  5 minute output rate 1000 bits/sec, 1 packets/sec
+     120456 packets input, 9871234 bytes, 0 no buffer
+     0 input errors, 0 CRC, 0 frame, 0 overrun, 0 ignored
+     80456 packets output, 7123456 bytes, 0 underruns
+     0 output errors, 0 interface resets
+GigabitEthernet1/0/1 is up, line protocol is up (connected)
+  Hardware is Gigabit Ethernet, address is 7018.a712.3481 (bia 7018.a712.3481)
+  Description: PC-101
+  MTU 1500 bytes, BW 1000000 Kbit/sec, DLY 10 usec,
+     reliability 255/255, txload 1/255, rxload 1/255
+  Encapsulation ARPA, loopback not set
+  Keepalive set (10 sec)
+  Full-duplex, 1000Mb/s, media type is 10/100/1000BaseTX
+  input flow-control is on, output flow-control is unsupported
+  ARP type: ARPA, ARP Timeout 04:00:00
+  Last input never, output 00:00:01, output hang never
+  Input queue: 0/2000/0/0 (size/max/drops/flushes); Total output drops: 12
+  5 minute input rate 15000 bits/sec, 12 packets/sec
+  5 minute output rate 42000 bits/sec, 20 packets/sec
+     1234567 packets input, 987654321 bytes, 0 no buffer
+     Received 2345 broadcasts (1234 multicasts)
+     0 runts, 0 giants, 0 throttles
+     3 input errors, 2 CRC, 0 frame, 0 overrun, 0 ignored
+     0 watchdog, 1234 multicast, 0 pause input
+     2345678 packets output, 1876543210 bytes, 0 underruns
+     0 output errors, 0 collisions, 1 interface resets
+GigabitEthernet1/0/2 is down, line protocol is down (notconnect)
+  Hardware is Gigabit Ethernet, address is 7018.a712.3482 (bia 7018.a712.3482)
+  MTU 1500 bytes, BW 1000000 Kbit/sec, DLY 10 usec,
+  Auto-duplex, Auto-speed, media type is 10/100/1000BaseTX
+  5 minute input rate 0 bits/sec, 0 packets/sec
+  5 minute output rate 0 bits/sec, 0 packets/sec
+     0 packets input, 0 bytes, 0 no buffer
+     0 input errors, 0 CRC, 0 frame, 0 overrun, 0 ignored
+     0 packets output, 0 bytes, 0 underruns
+     0 output errors, 0 collisions, 0 interface resets
+GigabitEthernet1/0/4 is administratively down, line protocol is down (disabled)
+  Hardware is Gigabit Ethernet, address is 7018.a712.3484 (bia 7018.a712.3484)
+  Description: Disabled-port
+  MTU 1500 bytes, BW 1000000 Kbit/sec, DLY 10 usec,
+  Auto-duplex, Auto-speed, media type is 10/100/1000BaseTX
+     0 packets input, 0 bytes, 0 no buffer
+     0 input errors, 0 CRC, 0 frame, 0 overrun, 0 ignored
+     0 packets output, 0 bytes, 0 underruns
+     0 output errors, 0 collisions, 0 interface resets
+TenGigabitEthernet1/1/1 is up, line protocol is up (connected)
+  Hardware is Ten Gigabit Ethernet, address is 7018.a712.34b5 (bia 7018.a712.34b5)
+  Description: UPLINK-CORE
+  MTU 1500 bytes, BW 10000000 Kbit/sec, DLY 10 usec,
+  Full-duplex, 10Gb/s, link type is auto, media type is SFP-10GBase-SR
+  5 minute input rate 4500000 bits/sec, 900 packets/sec
+  5 minute output rate 3200000 bits/sec, 700 packets/sec
+     987654321 packets input, 876543210987 bytes, 0 no buffer
+     0 input errors, 0 CRC, 0 frame, 0 overrun, 0 ignored
+     876543210 packets output, 765432109876 bytes, 0 underruns
+     0 output errors, 0 collisions, 0 interface resets
